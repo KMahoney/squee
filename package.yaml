@@ -1,0 +1,46 @@
+name:                squee
+version:             0.1.0.0
+github:              "KMahoney/squee"
+license:             BSD3
+author:              "Kevin Mahoney"
+maintainer:          "kevin@kevinmahoney.co.uk"
+copyright:           "2019 Kevin Mahoney"
+
+description:         Please see the README on GitHub at <https://github.com/KMahoney/squee#readme>
+
+dependencies:
+  - base >= 4.7 && < 5
+
+default-extensions:
+- OverloadedStrings
+- LambdaCase
+- MultiWayIf
+- NamedFieldPuns
+- TupleSections
+- DeriveGeneric
+
+ghc-options:
+  - -optP-Wno-nonportable-include-path
+  - -Wall
+  - -Werror
+
+executables:
+  squee:
+    main:                Cli/Main.hs
+    source-dirs:         src
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - containers
+      - bytestring
+      - text
+      - mtl
+      - aeson
+      - optparse-applicative
+      - postgresql-simple
+      - prettyprinter
+      - prettyprinter-ansi-terminal
+      - aeson-pretty
+      - haskeline
