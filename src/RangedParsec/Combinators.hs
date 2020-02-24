@@ -3,6 +3,7 @@ module RangedParsec.Combinators
   ( skipSpace
   , takeWhile
   , takeWhile1
+  , excludingSet
   , sepBy
   , sepBy1
   , manyTill
@@ -67,6 +68,15 @@ takeWhile1 p = Parsec (loop T.empty)
             Empty (Error S.empty s)
           | otherwise ->
             Consumed (Ok (T.reverse acc) S.empty s)
+
+
+excludingSet :: Parsec Text -> S.Set Text -> Parsec Text
+excludingSet p set =
+  Parsec $ \s ->
+  case runParsec p s of
+    Consumed (Ok x _ _)
+      | S.member x set -> Empty (Error S.empty s)
+    r -> r
 
 
 sepBy :: Parsec a -> Parsec b -> Parsec [a]

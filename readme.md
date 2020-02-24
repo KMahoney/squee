@@ -70,7 +70,7 @@ SQUEE> example | filter (\t -> t.a = 1)
 +---+----------+
 | 1 | example1 |
 
-SQUEE> filterA1 := filter (\t -> t.a = 1)
+SQUEE> def filterA1 := filter (\t -> t.a = 1)
 
 filterA1 : [{a: ~int4, ..α}] → [{a: ~int4, ..α}]
 
@@ -103,7 +103,7 @@ SQUEE> example | join join_example
 | 1 | example1 | join_example1 |
 | 2 | example2 | join_example2 |
 
-SQUEE> joinExample := join join_example
+SQUEE> def joinExample := join join_example
 
 joinExample : ({β} = {a: ~int4, c: ~text} ⋈ {α}) ⇒ [{α}] → [{β}]
 

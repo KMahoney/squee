@@ -26,7 +26,7 @@ parseDefinitions = parse definitions
 replStatement :: Parsec ReplStatement
 replStatement = skipSpace *> (replAssignment <|> replExpression) <* eof
   where
-    replAssignment = RSAssignment <$> (try (identifier <* operator ":=")) <*> expression
+    replAssignment = RSAssignment <$> (keyword "def" *> identifier <* operator ":=") <*> expression
     replExpression = RSExpression <$> expression
 
 
@@ -34,7 +34,7 @@ definitions :: Parsec Definitions
 definitions = skipSpace *> (manyTill definition eof)
   where
     definition :: Parsec (Symbol, Expression)
-    definition = (,) <$> (identifier <* operator ":=") <*> expression
+    definition = (,) <$> (keyword "def" *> identifier <* operator ":=") <*> expression
 
 
 isIdentifierChar :: Char -> Bool
@@ -46,13 +46,19 @@ isOperatorChar c = c `elem` (":+-<>|=/*" :: String)
 
 
 operator :: T.Text -> Parsec Symbol
-operator op = expecting "operator" $
+operator op = expecting ("operator " <> op) $
   Symbol <$> matchSpan isOperatorChar op <* skipSpace
 
 
 identifier :: Parsec Symbol
 identifier = expecting "identifier" $
-  Symbol <$> takeWhile1 isIdentifierChar <* skipSpace
+  Symbol <$> (takeWhile1 isIdentifierChar `excludingSet` keywords) <* skipSpace
+  where
+    keywords = S.fromList [ "def" ]
+
+
+keyword :: T.Text -> Parsec ()
+keyword kw = expecting kw $ matchSpan isIdentifierChar kw >> skipSpace
 
 
 lexChar :: Char -> Parsec ()
@@ -78,13 +84,7 @@ applications :: Parsec Expression
 applications = simpleExpression >>= args
   where
     args :: Expression -> Parsec Expression
-    args e = ((App e <$> (notStartOfLine *> parseLocated simpleExpression)) >>= args) <|> pure e
-
-    notStartOfLine :: Parsec ()
-    notStartOfLine = Parsec $ \s@(ParseState { psPos = (_, col) }) ->
-      if col == 1
-      then Empty (Error S.empty s)
-      else Empty (Ok () S.empty s)
+    args e = ((App e <$> (parseLocated simpleExpression)) >>= args) <|> pure e
 
 
 simpleExpression :: Parsec Expression

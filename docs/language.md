@@ -145,14 +145,20 @@ SQUEE> example | filter (\t -> t.a = 1) | join join_example
 
 ## Assignment
 
-Assign values and functions with the assignment operator (`:=`)
+Assign values and functions with the syntax:
 
 ```
-SQUEE> filteredExample := example | filter (\t -> t.a = 1)
+def [name] := [expression]
+```
+
+For example,
+
+```
+SQUEE> def filteredExample := example | filter (\t -> t.a = 1)
 
 filteredExample : [{a: ~int4, b: ~text}]
 
-SQUEE> identity := \x -> x
+SQUEE> def identity := \x -> x
 
 identity : α → α
 
