@@ -9,6 +9,7 @@ import qualified Data.Text as T
 import Database.PostgreSQL.Simple (connectPostgreSQL, Connection)
 import Control.Monad.IO.Class
 import Data.List (intercalate)
+import Data.IORef
 
 import qualified Cli.AsciiTable as Table
 import qualified RangedParsec as Parsec
@@ -36,30 +37,32 @@ renderDoc =
   T.unpack . renderStrict . layoutPretty defaultLayoutOptions
 
 
-completions :: [T.Text] -> CompletionFunc IO
-completions completionList (left, _) =
+completions :: IORef Env -> CompletionFunc IO
+completions envRef (left, _) =
   case span Parser.isIdentifierChar left of
     ([], _) -> return (left, [])
-    (identifier, unused) ->
-      let completionList' = filter (T.isPrefixOf (T.pack (reverse identifier))) completionList
-      in return (unused, map (simpleCompletion . T.unpack) completionList')
+    (identifier, unused) -> do
+      env <- readIORef envRef
+      let completionList' = filter (T.isPrefixOf (T.pack (reverse identifier))) (map symbolName (M.keys env))
+      return (unused, map (simpleCompletion . T.unpack) completionList')
     
 
 stdEnv :: Schema -> Env
 stdEnv = M.union Env.stdLib . Env.fromSchema
 
 
-replLoop :: Connection -> Env -> InputT IO ()
-replLoop connection = loop
+replLoop :: Connection -> IORef Env -> InputT IO ()
+replLoop connection envRef = loop
 
   where
-    loop :: Env -> InputT IO ()
-    loop env = do
+    loop :: InputT IO ()
+    loop = do
+      env <- liftIO $ readIORef envRef
       input <- getInputLine "SQUEE> "
       case input of
         Nothing -> return ()
         Just "" ->
-          loop env
+          loop
         Just expressionInput ->
           case Parser.parseReplStatement (T.pack expressionInput) of
             Right (AST.RSAssignment sym ast) -> do
@@ -67,14 +70,15 @@ replLoop connection = loop
                 Left err -> do
                   outputInferError err
                   newLine
-                  loop env
+                  loop
                 Right t -> do
                   newLine
                   outputText $ (AST.symbolName sym) <> " : " <> (T.showQual (T.normaliseTyVars t))
                   newLine
                   let schema = T.generalise S.empty t
                       value = Eval.runEval (Env.valueEnv env) (Eval.evalExpression ast)
-                  loop (M.insert sym (value, schema) env)
+                  liftIO $ writeIORef envRef (M.insert sym (value, schema) env)
+                  loop 
             Right (AST.RSExpression ast) -> do
               case T.infer (Env.typeEnv env) ast of
                 Left err ->
@@ -82,12 +86,12 @@ replLoop connection = loop
                 Right t ->
                   outputValue t $ Eval.runEval (Env.valueEnv env) (Eval.evalExpression ast)
               newLine
-              loop env
+              loop
             Left err -> do
               outputStrLn (T.unpack (Parsec.errMessage err))
               outputDoc $ Parsec.prettyPos $ Parsec.errSourcePos err
               newLine
-              loop env
+              loop
 
     outputText :: T.Text -> InputT IO ()
     outputText = outputStrLn . T.unpack
@@ -136,5 +140,5 @@ run :: IO ()
 run = do
   connection <- connectPostgreSQL ""
   schema <- Schema.introspect connection
-  let env = stdEnv schema
-  runInputT (setComplete (completions (fmap symbolName (M.keys env))) defaultSettings) (replLoop connection env)
+  envRef <- newIORef (stdEnv schema)
+  runInputT (setComplete (completions envRef) defaultSettings) (replLoop connection envRef)
