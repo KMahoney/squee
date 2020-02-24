@@ -120,7 +120,7 @@ SQUEE> example | filterA1 | joinExample
 
 * Squee doesn't currently handle nulls or nullable fields.
 * There is a flat namespace for fields (as opposed to SQL's qualified field names i.e. `table.column`), so you can't join two tables containing the same field name without joining on those fields. This is a choice rather than a technical limitation - let's see how annoying it is!
-* Very few SQL operators/functions are currently available. Basically just arithmatic operations (`=` `+` `-` `*` `/`) right now.
+* Very few SQL operators/functions are currently available. Basically just arithmetic operations (`=` `+` `-` `*` `/`) right now.
 * Only natural joins are currently available. Arbitrary join conditions shouldn't be too hard, but left/right joins require null handling.
 * I'm not sure how to handle aggregations yet.
 * The next objective is quality error reporting.

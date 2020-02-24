@@ -22,7 +22,7 @@ Queries are built out of the following core functions which are described below:
 
 `{a: ~int4, b: ~text}` is a table row containing fields `a` and `b` with types `~int4` and `~text` respectively.
 
-**Type variables** are represented by greek letters, e.g.
+**Type variables** are represented by Greek letters, e.g.
 
 `α` and `β` can represent any type.
 
