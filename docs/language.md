@@ -8,7 +8,7 @@ Queries are built out of the following core functions which are described below:
 
 * `map : ({α} → {β}) → [{α}] → [{β}]`
 * `filter : ({α} → ~bool) → [{α}] → [{α}]`
-* `join : ({γ} = {α} ⋈ {β}) ⇒ [{α}] → [{β}] → [{γ}]`
+* `natjoin : ({γ} = {α} ⋈ {β}) ⇒ [{α}] → [{β}] → [{γ}]`
 
 ## Types
 
@@ -114,12 +114,12 @@ SQUEE> map (\t -> {a: t.a + 1, b: t.b}) example
 | 3 | example2 |
 ```
 
-## The `join` Function
+## The `natjoin` Function
 
 The natural join function has the type `({γ} = {α} ⋈ {β}) ⇒ [{α}] → [{β}] → [{γ}]`
 
 ```
-SQUEE> join example join_example
+SQUEE> natjoin example join_example
 
 : [{a: ~int4, b: ~text, c: ~text}]
 
@@ -134,7 +134,7 @@ SQUEE> join example join_example
 The pipe (`|`) is an infix operator with type `α → (α → β) → β`:
 
 ```
-SQUEE> example | filter (\t -> t.a = 1) | join join_example
+SQUEE> example | filter (\t -> t.a = 1) | natjoin join_example
 
 : [{a: ~int4, b: ~text, c: ~text}]
 

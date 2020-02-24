@@ -29,7 +29,7 @@ stdLib =
   M.fromList
   [ (Symbol "map", (vfn stdMap 2, stdMapT))
   , (Symbol "filter", (vfn stdFilter 2, stdFilterT))
-  , (Symbol "join", (vfn stdJoin 2, stdJoinT))
+  , (Symbol "natjoin", (vfn stdNatJoin 2, stdNatJoinT))
   , (Symbol "|", (vfn stdPipe 2, stdPipeT))
   , stdBinOp "=" stdEqT
   , stdBinOp "+" stdNumOpT
@@ -76,10 +76,10 @@ stdLib =
     stdMap _ = undefined
     stdMapT = s [0, 1] $ ((row (tv 0)) --> row (tv 1)) --> query (row (tv 0)) --> query (row (tv 1))
 
-    stdJoin [VQuery a, VQuery b] =
+    stdNatJoin [VQuery a, VQuery b] =
       return $ VQuery $ QB.applyJoin a b
-    stdJoin _ = undefined
-    stdJoinT = sq [0, 1, 2] [NatJoin (tv 2) (tv 0) (tv 1)] $ query (row (tv 0)) --> query (row (tv 1)) --> query (row (tv 2))
+    stdNatJoin _ = undefined
+    stdNatJoinT = sq [0, 1, 2] [NatJoin (tv 2) (tv 0) (tv 1)] $ query (row (tv 0)) --> query (row (tv 1)) --> query (row (tv 2))
 
     stdPipe [x, VFn (FnValue eval _ args)] = eval (reverse (x : args))
     stdPipe _ = undefined

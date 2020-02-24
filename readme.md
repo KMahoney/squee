@@ -51,11 +51,11 @@ SQUEE> join_example
 | 2 | join_example2 |
 ```
 
-Queries can be built out of `map`, `filter` and `join`:
+Queries can be built out of `map`, `filter` and `natjoin`:
 
 * `map : ({α} → {β}) → [{α}] → [{β}]`
 * `filter : ({α} → ~bool) → [{α}] → [{α}]`
-* `join : ({γ} = {α} ⋈ {β}) ⇒ [{α}] → [{β}] → [{γ}]`
+* `natjoin : ({γ} = {α} ⋈ {β}) ⇒ [{α}] → [{β}] → [{γ}]`
 
 The types are explained in the [language docs](docs/language.md).
 
@@ -91,10 +91,10 @@ SQUEE> filterA1 join_example
 | 1 | join_example1 |
 ```
 
-as well as the join function:
+as well as the natjoin function:
 
 ```
-SQUEE> example | join join_example
+SQUEE> example | natjoin join_example
 
 : [{a: ~int4, b: ~text, c: ~text}]
 
@@ -103,7 +103,7 @@ SQUEE> example | join join_example
 | 1 | example1 | join_example1 |
 | 2 | example2 | join_example2 |
 
-SQUEE> def joinExample := join join_example
+SQUEE> def joinExample := natjoin join_example
 
 joinExample : ({β} = {a: ~int4, c: ~text} ⋈ {α}) ⇒ [{α}] → [{β}]
 
