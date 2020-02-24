@@ -6,6 +6,7 @@ module Squee.Types.Infer
 
 import qualified Data.Map as M
 import qualified Data.Set as S
+import qualified Data.Text as T
 import Control.Monad.Except
 import Data.List (nub)
 
@@ -49,6 +50,9 @@ reducePreds loc (p:ps) = do
     (T.Num (T.TypeVar _)) -> (p':) <$> reducePreds loc ps
     (T.Num (T.TypeCon sym _))
       | sym `elem` numTypes -> reducePreds loc ps
+    (T.Comparable (T.TypeVar _)) -> (p':) <$> reducePreds loc ps
+    (T.Comparable (T.TypeCon sym _))
+      | isComparableType sym -> reducePreds loc ps
     (T.NatJoin _ b c)
       | isRowVar b || isRowVar c -> (p':) <$> reducePreds loc ps
     (T.NatJoin a (T.TypeRow f1 Nothing) (T.TypeRow f2 Nothing)) -> do
@@ -57,6 +61,8 @@ reducePreds loc (p:ps) = do
     _ -> throwError (InferPredViolation (At loc [p']))
   where
     numTypes = ["~int2", "~int4", "~int8", "~numeric", "~float4", "~float8"]
+
+    isComparableType = T.isPrefixOf "~"
 
     isRowVar = \case
       (T.TypeVar _) -> True

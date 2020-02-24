@@ -26,6 +26,7 @@ showType (TypeRow fields var) =
 
 showPred :: Pred -> Text
 showPred (Num t) = "(Num " <> showType t <> ")"
+showPred (Comparable t) = "(Comparable " <> showType t <> ")"
 showPred (NatJoin a b c) = "({" <> showType a <> "} = {" <> showType b <> "} ⋈ {" <> showType c <> "})"
 
 

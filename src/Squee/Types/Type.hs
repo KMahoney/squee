@@ -18,6 +18,7 @@ data Qual = Qual [Pred] Type
 
 data Pred
   = Num Type
+  | Comparable Type
   | NatJoin Type Type Type
   deriving (Show, Eq)
 
@@ -60,8 +61,10 @@ instance Types Type where
 
 instance Types Pred where
   tv (Num t) = tv t
+  tv (Comparable t) = tv t
   tv (NatJoin a b c) = S.unions (map tv [a, b, c])
   applySubst s (Num t) = Num (applySubst s t)
+  applySubst s (Comparable t) = Comparable (applySubst s t)
   applySubst s (NatJoin a b c) = NatJoin (applySubst s a) (applySubst s b) (applySubst s c)
 
 instance Types Qual where

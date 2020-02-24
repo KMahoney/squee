@@ -97,9 +97,9 @@ stdLib =
         undefined
     stdBinOpImpl _ _ = undefined
 
-    stdEqT = s [0] $ (tv 0) --> (tv 0) --> bool
+    stdEqT = sq [0] [Comparable (tv 0)] $ (tv 0) --> (tv 0) --> bool
     stdNumOpT = sq [0] [Num (tv 0)] $ (tv 0) --> (tv 0) --> (tv 0)
-    stdCompareT = s [0] $ (tv 0) --> (tv 0) --> bool
+    stdCompareT = sq [0] [Comparable (tv 0)] $ (tv 0) --> (tv 0) --> bool
 
 
 fromSchema :: Schema -> Env
