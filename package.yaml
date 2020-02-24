@@ -1,10 +1,10 @@
 name:                squee
 version:             0.1.0.0
 github:              "KMahoney/squee"
-license:             BSD3
+license:             MIT
 author:              "Kevin Mahoney"
 maintainer:          "kevin@kevinmahoney.co.uk"
-copyright:           "2019 Kevin Mahoney"
+copyright:           "2020 Kevin Mahoney"
 
 description:         Please see the README on GitHub at <https://github.com/KMahoney/squee#readme>
 
