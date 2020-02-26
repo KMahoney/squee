@@ -1,5 +1,6 @@
 module Squee.Types.Infer
   ( InferError(..)
+  , errorPos
   , inferExpression
   , inferDefinition
   ) where
@@ -10,7 +11,7 @@ import qualified Data.Text as T
 import Control.Monad.Except
 import Data.List (nub)
 
-import RangedParsec (Located(..), SourceSpan)
+import RangedParsec (Located(..), SourceSpan, SourcePos, firstSourcePos)
 
 import qualified Squee.AST as AST
 import qualified Squee.Env as Env
@@ -24,6 +25,13 @@ data InferError
   | InferPredViolation (Located [T.Pred])
   | InferUnknown (Located AST.Symbol)
   deriving (Eq, Show)
+
+
+errorPos :: InferError -> SourcePos
+errorPos = \case
+  InferUnificationError (At loc _) -> firstSourcePos loc
+  InferPredViolation (At loc _) -> firstSourcePos loc
+  InferUnknown (At loc _) -> firstSourcePos loc
 
 
 instantiateAll :: Env.TypeEnv -> [Constraints.Assumption] -> TypeCheck InferError [T.Pred]

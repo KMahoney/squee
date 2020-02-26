@@ -20,7 +20,7 @@ check schema filename = do
   result <- compileSqueeFile schema filename
   case result of
     Left err -> do
-      putDocLn (showCompileError err)
+      putDocLn $ showCompileError err
       putStrLn ""
       return False
     Right _ ->

@@ -31,9 +31,13 @@ data CompileError
 showCompileError :: CompileError -> Doc AnsiStyle
 showCompileError = \case
   CompileParseError err ->
-    pretty (RP.errMessage err) <> line <> RP.prettyPos (RP.errSourcePos err)
+    prettyPos (RP.errSourcePos err) <+> pretty (RP.errMessage err) <> line <> RP.prettyPos (RP.errSourcePos err)
   CompileInferError err ->
-    showInferError err
+    prettyPos (Type.errorPos err) <+> showInferError err
+
+  where
+    prettyPos (RP.Sourced { RP.sourceFilename, RP.discardSource = (posLine, posCol) }) =
+      pretty sourceFilename <> ":" <> pretty posLine <> ":" <> pretty posCol <> ":"
 
 
 readSchema :: IO Schema.Schema

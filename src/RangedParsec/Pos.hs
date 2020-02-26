@@ -12,6 +12,7 @@ module RangedParsec.Pos
   , nextLine
   , nextCol
   , addCol
+  , firstSourcePos
   ) where
 
 import Data.Text (Text)
@@ -21,6 +22,7 @@ type Line = Int
 type Column = Int
 type Pos = (Line, Column)
 type Range = (Pos, Pos)
+
 
 initialPos :: Pos
 initialPos = (1, 1)
@@ -48,6 +50,7 @@ data Sourced a =
 type SourceSpan = Sourced Range
 type SourcePos = Sourced Pos
 
+
 data Located a = At { locatedSpan :: SourceSpan, discardLocation :: a }
   deriving (Functor, Foldable, Traversable)
 
@@ -56,3 +59,8 @@ instance Eq a => Eq (Located a) where
 
 instance Show a => Show (Located a) where
   show = show . discardLocation
+
+
+firstSourcePos :: SourceSpan -> SourcePos
+firstSourcePos (Sourced { sourceFilename, sourceContent, discardSource = (pos, _) })
+  = Sourced { sourceFilename, sourceContent, discardSource = pos  }
