@@ -55,10 +55,10 @@ stdLib =
     
     stdFilter [VFn (FnValue eval _ args), VQuery q] = do
       let rowValue = M.fromList $ map (\(Schema.ColumnName c) -> (Symbol c, VSqlExpr (QB.EField c))) $ QB.columnNames q
-      result <- eval (reverse (VRow rowValue : args))
+          result = eval (reverse (VRow rowValue : args))
       case result of
         VSqlExpr e ->
-          return $ VQuery (QB.applyFilter e q)
+          VQuery (QB.applyFilter e q)
         _ ->
           error "expecting sql expression"
     stdFilter _ = undefined
@@ -66,18 +66,18 @@ stdLib =
 
     stdMap [VFn (FnValue eval _ args), VQuery q] = do
       let rowValue = M.fromList $ map (\(Schema.ColumnName c) -> (Symbol c, VSqlExpr (QB.EField c))) $ QB.columnNames q
-      result <- eval (reverse (VRow rowValue : args))
+          result = eval (reverse (VRow rowValue : args))
       case result of
         VRow rowExprs ->
           let rowExprs' = M.fromList $ map (\(Symbol k, VSqlExpr expr) -> (k, expr)) $ M.toList rowExprs in
-            return $ VQuery (QB.applyMap rowExprs' q)
+            VQuery (QB.applyMap rowExprs' q)
         _ ->
           error "expecting row"
     stdMap _ = undefined
     stdMapT = s [0, 1] $ ((row (tv 0)) --> row (tv 1)) --> query (row (tv 0)) --> query (row (tv 1))
 
     stdNatJoin [VQuery a, VQuery b] =
-      return $ VQuery $ QB.applyJoin a b
+      VQuery $ QB.applyJoin a b
     stdNatJoin _ = undefined
     stdNatJoinT = sq [0, 1, 2] [NatJoin (tv 2) (tv 0) (tv 1)] $ query (row (tv 0)) --> query (row (tv 1)) --> query (row (tv 2))
 
@@ -89,10 +89,10 @@ stdLib =
     stdBinOp op t =
       (Symbol op, (vfn (stdBinOpImpl op) 2, t))
 
-    stdBinOpImpl :: Text -> [Value] -> Eval Value
+    stdBinOpImpl :: Text -> [Value] -> Value
     stdBinOpImpl op [a, b] = case (a, b) of
       (VSqlExpr a', VSqlExpr b') ->
-        return $ VSqlExpr (QB.EBinOp op a' b')
+        VSqlExpr (QB.EBinOp op a' b')
       _ ->
         undefined
     stdBinOpImpl _ _ = undefined

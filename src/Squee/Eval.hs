@@ -14,7 +14,7 @@ type ValueEnv = M.Map Symbol Value
 type Eval a = Reader ValueEnv a
 
 data FnValue
-  = FnValue { fnEval :: [Value] -> Eval Value
+  = FnValue { fnEval :: [Value] -> Value
             , fnArity :: Int
             , fnArgs :: [Value]
             }
@@ -39,9 +39,11 @@ runEval env eval =
   runReader eval env
 
 
-evalAbs :: [Symbol] -> Expression -> [Value] -> Eval Value
-evalAbs args ast values =
-  withReaderT (M.union (M.fromList (zip args values))) (evalExpression ast)
+evalAbs :: [Symbol] -> Expression -> Eval ([Value] -> Value)
+evalAbs args ast = do
+  env <- ask
+  return $ \values ->
+    runEval (M.union (M.fromList (zip args values)) env) (evalExpression ast)
 
 
 evalExpression :: Expression -> Eval Value
@@ -57,14 +59,15 @@ evalExpression = \case
         let args = v2 : fnArgs in
           if length args == fnArity
           then
-            fnEval (reverse args)
+            return (fnEval (reverse args))
           else
             return $ VFn $ fn { fnArgs = args }
       _ ->
         error "left side of application should evaluate to a function"
 
-  Abs args ast ->
-    return $ VFn $ FnValue (evalAbs args ast) (length args) []
+  Abs args ast -> do
+    closure <- evalAbs args ast
+    return $ VFn $ FnValue closure (length args) []
 
   Field e (At _ name) -> do
     v1 <- evalExpression e
@@ -84,7 +87,7 @@ evalExpression = \case
     v2 <- evalExpression e2
     case opFn of
       VFn (FnValue { fnEval, fnArity = 2, fnArgs = [] }) ->
-        fnEval [v1, v2]
+        return $ fnEval [v1, v2]
       _ ->
         error "operator should evaluate to a function"
 
@@ -98,5 +101,6 @@ evalExpression = \case
 
 evalDefinition :: Definition -> Eval Value
 evalDefinition = \case
-  LocalDef _ args ast ->
-    return $ VFn $ FnValue (evalAbs args ast) (length args) []
+  LocalDef _ args ast -> do
+    closure <- evalAbs args ast
+    return $ VFn $ FnValue closure (length args) []
