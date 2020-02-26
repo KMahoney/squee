@@ -1,4 +1,4 @@
-module Cli.AsciiTable
+module Cli.Pretty.AsciiTable
   ( Table(..)
   , Column(..)
   , Alignment(..)

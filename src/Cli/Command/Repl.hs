@@ -7,10 +7,10 @@ import System.Console.Haskeline
 import qualified Data.Text as T
 import Database.PostgreSQL.Simple (connectPostgreSQL, Connection)
 import Control.Monad.IO.Class
-import Data.List (intercalate)
 import Data.IORef
 
-import qualified Cli.AsciiTable as Table
+import qualified Cli.Pretty.AsciiTable as Table
+import Cli.Pretty.InferError
 import qualified RangedParsec as Parsec
 import qualified Squee.Parser as Parser
 import qualified Squee.AST as AST
@@ -18,7 +18,6 @@ import qualified Squee.Eval as Eval
 import qualified Squee.QueryBuilder as QB
 import qualified Squee.Types.PrettyPrint as T
 import qualified Squee.Types.Infer as T
-import qualified Squee.Types.Unify as T
 import qualified Squee.Types.Type as T
 import Squee.AST (symbolName)
 import Squee.Env (Env)
@@ -67,7 +66,7 @@ replLoop connection envRef = loop
             Right (AST.RSDefinition def) -> do
               case T.inferDefinition (Env.typeEnv env) def of
                 Left err -> do
-                  outputInferError err
+                  outputDoc (showInferError err)
                   newLine
                   loop
                 Right schema -> do
@@ -80,7 +79,7 @@ replLoop connection envRef = loop
             Right (AST.RSExpression ast) -> do
               case T.inferExpression (Env.typeEnv env) ast of
                 Left err ->
-                  outputInferError err
+                  outputDoc (showInferError err)
                 Right t ->
                   outputValue t $ Eval.runEval (Env.valueEnv env) (Eval.evalExpression ast)
               newLine
@@ -109,21 +108,6 @@ replLoop connection envRef = loop
       _ -> do
         newLine
         outputText $ ": " <> (T.showQual (T.normaliseTyVars t))
-
-    outputInferError :: T.InferError -> InputT IO ()
-    outputInferError = \case
-      T.InferUnknown (Parsec.At errSpan _) -> do
-        outputStrLn "Unknown variable"
-        outputDoc $ Parsec.prettyRange errSpan
-      T.InferUnificationError (Parsec.At errSpan (T.UnificationError a b)) -> do
-        outputStrLn $ "Cannot unify " <> (T.unpack (T.showType a)) <> " with " <> (T.unpack (T.showType b))
-        outputDoc $ Parsec.prettyRange errSpan
-      T.InferUnificationError (Parsec.At errSpan (T.MissingFields fields)) -> do
-        outputStrLn $ "Missing fields " <> intercalate ", " (map (T.unpack . symbolName) fields)
-        outputDoc $ Parsec.prettyRange errSpan
-      T.InferPredViolation (Parsec.At errSpan preds) -> do
-        outputStrLn $ "Violates constraint(s) " <> intercalate " " (map (T.unpack . T.showPred) preds)
-        outputDoc $ Parsec.prettyRange errSpan
 
     outputDoc :: Doc AnsiStyle -> InputT IO ()
     outputDoc doc = outputStrLn (renderDoc doc)
