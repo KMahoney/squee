@@ -101,6 +101,8 @@ evalExpression = \case
 
 evalDefinition :: Definition -> Eval Value
 evalDefinition = \case
+  LocalDef _ [] ast -> do
+    evalExpression ast
   LocalDef _ args ast -> do
     closure <- evalAbs args ast
     return $ VFn $ FnValue closure (length args) []
