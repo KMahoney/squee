@@ -16,9 +16,13 @@ data Type
 data Qual = Qual [Pred] Type
   deriving (Show, Eq)
 
+data TypeClass
+  = Num
+  | Comparable
+  deriving (Show, Eq)
+
 data Pred
-  = Num Type
-  | Comparable Type
+  = InClass TypeClass Type
   | NatJoin Type Type Type
   deriving (Show, Eq)
 
@@ -60,11 +64,9 @@ instance Types Type where
             TypeRow row' v
 
 instance Types Pred where
-  tv (Num t) = tv t
-  tv (Comparable t) = tv t
+  tv (InClass _ t) = tv t
   tv (NatJoin a b c) = S.unions (map tv [a, b, c])
-  applySubst s (Num t) = Num (applySubst s t)
-  applySubst s (Comparable t) = Comparable (applySubst s t)
+  applySubst s (InClass tc t) = InClass tc (applySubst s t)
   applySubst s (NatJoin a b c) = NatJoin (applySubst s a) (applySubst s b) (applySubst s c)
 
 instance Types Qual where

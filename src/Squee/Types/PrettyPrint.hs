@@ -25,8 +25,11 @@ showType (TypeRow fields var) =
 
 
 showPred :: Pred -> Text
-showPred (Num t) = "(Num " <> showType t <> ")"
-showPred (Comparable t) = "(Comparable " <> showType t <> ")"
+showPred (InClass tc t) = "(" <> className tc <> " " <> showType t <> ")"
+  where
+    className = \case
+      Num -> "Num"
+      Comparable -> "Comparable"
 showPred (NatJoin a b c) = "({" <> showType a <> "} = {" <> showType b <> "} ⋈ {" <> showType c <> "})"
 
 

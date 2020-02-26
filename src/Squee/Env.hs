@@ -6,7 +6,7 @@ import Data.Text (Text)
 import Database.Schema (Schema)
 import qualified Database.Schema as Schema
 import qualified Squee.QueryBuilder as QB
-import Squee.Types.Type (TypeSchema(..), Type(..), Qual(..), Pred(..))
+import Squee.Types.Type (TypeSchema(..), Type(..), Qual(..), Pred(..), TypeClass(..))
 import qualified Squee.Types.CommonType as T
 import Squee.Eval
 import Squee.AST (Symbol(..))
@@ -97,9 +97,9 @@ stdLib =
         undefined
     stdBinOpImpl _ _ = undefined
 
-    stdEqT = sq [0] [Comparable (tv 0)] $ (tv 0) --> (tv 0) --> bool
-    stdNumOpT = sq [0] [Num (tv 0)] $ (tv 0) --> (tv 0) --> (tv 0)
-    stdCompareT = sq [0] [Comparable (tv 0)] $ (tv 0) --> (tv 0) --> bool
+    stdEqT = sq [0] [InClass Comparable (tv 0)] $ (tv 0) --> (tv 0) --> bool
+    stdNumOpT = sq [0] [InClass Num (tv 0)] $ (tv 0) --> (tv 0) --> (tv 0)
+    stdCompareT = sq [0] [InClass Comparable (tv 0)] $ (tv 0) --> (tv 0) --> bool
 
 
 fromSchema :: Schema -> Env

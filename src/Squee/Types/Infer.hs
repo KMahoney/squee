@@ -48,12 +48,9 @@ reducePreds _ [] = return []
 reducePreds loc (p:ps) = do
   p' <- updateType p
   case p' of
-    (T.Num (T.TypeVar _)) -> (p':) <$> reducePreds loc ps
-    (T.Num (T.TypeCon sym _))
-      | sym `elem` numTypes -> reducePreds loc ps
-    (T.Comparable (T.TypeVar _)) -> (p':) <$> reducePreds loc ps
-    (T.Comparable (T.TypeCon sym _))
-      | isComparableType sym -> reducePreds loc ps
+    (T.InClass _ (T.TypeVar _)) -> (p':) <$> reducePreds loc ps
+    (T.InClass tc (T.TypeCon sym _))
+      | inClass tc sym -> reducePreds loc ps
     (T.NatJoin _ b c)
       | isRowVar b || isRowVar c -> (p':) <$> reducePreds loc ps
     (T.NatJoin a (T.TypeRow f1 Nothing) (T.TypeRow f2 Nothing)) -> do
@@ -62,8 +59,11 @@ reducePreds loc (p:ps) = do
     _ -> throwError (InferPredViolation (At loc [p']))
   where
     numTypes = ["~int2", "~int4", "~int8", "~numeric", "~float4", "~float8"]
+    isDbValue = T.isPrefixOf "~"
+    isComparableType = isDbValue
 
-    isComparableType = T.isPrefixOf "~"
+    inClass T.Num sym = sym `elem` numTypes
+    inClass T.Comparable sym = isComparableType sym
 
     isRowVar = \case
       (T.TypeVar _) -> True
