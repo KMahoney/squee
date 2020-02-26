@@ -39,6 +39,14 @@ runEval env eval =
   runReader eval env
 
 
+evalFn :: FnValue -> [Value] -> Value
+evalFn fn@(FnValue { fnEval, fnArity, fnArgs }) args =
+  let args' = reverse args ++ fnArgs in
+    if length args' == fnArity
+    then fnEval (reverse args')
+    else VFn $ fn { fnArgs = args' }
+  
+
 evalAbs :: [Symbol] -> Expression -> Eval ([Value] -> Value)
 evalAbs args ast = do
   env <- ask
@@ -54,14 +62,9 @@ evalExpression = \case
   App e1 (At _ e2) -> do
     v1 <- evalExpression e1
     case v1 of
-      VFn fn@(FnValue { fnEval, fnArity, fnArgs }) -> do
+      VFn fn -> do
         v2 <- evalExpression e2
-        let args = v2 : fnArgs in
-          if length args == fnArity
-          then
-            return (fnEval (reverse args))
-          else
-            return $ VFn $ fn { fnArgs = args }
+        return (evalFn fn [v2])
       _ ->
         error "left side of application should evaluate to a function"
 
@@ -101,8 +104,13 @@ evalExpression = \case
 
 evalDefinition :: Definition -> Eval Value
 evalDefinition = \case
-  LocalDef _ [] ast -> do
+  LocalDef _ [] ast ->
     evalExpression ast
   LocalDef _ args ast -> do
+    closure <- evalAbs args ast
+    return $ VFn $ FnValue closure (length args) []
+  ExportDef _ [] (At _ ast) ->
+    evalExpression ast
+  ExportDef _ args (At _ ast) -> do
     closure <- evalAbs args ast
     return $ VFn $ FnValue closure (length args) []

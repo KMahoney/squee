@@ -2,7 +2,6 @@ module Squee.Types.Infer
   ( InferError(..)
   , inferExpression
   , inferDefinition
-  , inferDefinitions
   ) where
 
 import qualified Data.Map as M
@@ -105,10 +104,3 @@ inferDefinition env def = runTypeCheck $ do
   preds' <- solve preds constraints
   t' <- updateType t
   return $ T.generalise S.empty $ T.Qual (nub preds') t'
-
-
-inferDefinitions :: Env.TypeEnv -> AST.Definitions -> Either InferError [(AST.Definition, T.TypeSchema)]
-inferDefinitions _ [] = return []
-inferDefinitions env (def:defs) = do
-  schema <- inferDefinition env def
-  ((def,schema):) <$> inferDefinitions (M.insert (AST.definitionName def) schema env) defs

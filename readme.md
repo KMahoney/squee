@@ -116,6 +116,24 @@ SQUEE> example | filterA1 | joinExample
 | 1 | example1 | join_example1 |
 ```
 
+The queries can be exported to other languages.
+
+Given the file `example.squee`:
+```
+export exportedExample := example
+export filteredExporedExample a := example | filter (\t -> t.a = a)
+```
+
+The command `squee generate sql-prepare example.squee` will generate:
+
+```sql
+PREPARE exportedExample AS
+  SELECT "a","b" FROM "example" AS x;
+
+PREPARE filteredExporedExample AS
+  SELECT "a","b" FROM "example" AS x WHERE ("a") = ($1);
+```
+
 ## Notes and Limitations
 
 * Squee doesn't currently handle nulls or nullable fields.

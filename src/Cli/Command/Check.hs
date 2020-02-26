@@ -6,7 +6,7 @@ import qualified Data.Text as T
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Terminal
 
-import Cli.Read
+import Cli.Compile
 import qualified Database.Schema as Schema
 
 
@@ -17,10 +17,10 @@ putDocLn =
 
 check :: Schema.Schema -> String -> IO Bool
 check schema filename = do
-  result <- readSqueeFile schema filename
+  result <- compileSqueeFile schema filename
   case result of
     Left err -> do
-      putDocLn (showReadError err)
+      putDocLn (showCompileError err)
       putStrLn ""
       return False
     Right _ ->

@@ -35,6 +35,7 @@ data ReplStatement
 
 data Definition
   = LocalDef Symbol [Symbol] Expression
+  | ExportDef Symbol [Symbol] (Located Expression)
   
 type Definitions
   = [Definition]
@@ -43,3 +44,4 @@ type Definitions
 definitionName :: Definition -> Symbol
 definitionName = \case
   LocalDef name _ _ -> name
+  ExportDef name _ _ -> name

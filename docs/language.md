@@ -170,3 +170,25 @@ SQUEE> identity filteredExample
 +---+----------+
 | 1 | example1 |
 ```
+
+## Exports
+
+`export` has similar syntax to `def`. It signifies what queries should be included when generating code.
+
+For example, if we have the file `example.squee`:
+
+```
+def notExported := example
+export exportedExample := example
+export filteredExporedExample a := example | filter (\t -> t.a = a)
+```
+
+Then the command `squee generate sql-prepare example.squee` will generate:
+
+```sql
+PREPARE exportedExample AS
+  SELECT "a","b" FROM "example" AS x;
+
+PREPARE filteredExporedExample AS
+  SELECT "a","b" FROM "example" AS x WHERE ("a") = ($1);
+```

@@ -35,7 +35,10 @@ definitions = skipSpace *> (manyTill definition eof)
 
 
 definition :: Parsec Definition
-definition = LocalDef <$> (keyword "def" *> identifier) <*> manyTill identifier (operator ":=") <*> expression
+definition = localdef <|> exportdef
+  where
+    localdef = LocalDef <$> (keyword "def" *> identifier) <*> manyTill identifier (operator ":=") <*> expression
+    exportdef = ExportDef <$> (keyword "export" *> identifier) <*> manyTill identifier (operator ":=") <*> parseLocated expression
 
 
 isIdentifierChar :: Char -> Bool
@@ -55,7 +58,7 @@ identifier :: Parsec Symbol
 identifier = expecting "identifier" $
   Symbol <$> (takeWhile1 isIdentifierChar `excludingSet` keywords) <* skipSpace
   where
-    keywords = S.fromList [ "def" ]
+    keywords = S.fromList [ "def", "export" ]
 
 
 keyword :: T.Text -> Parsec ()

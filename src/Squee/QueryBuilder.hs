@@ -28,6 +28,7 @@ data Expression
   | EString Text
   | EInt Integer
   | ECast Expression Text
+  | EPlaceholder Integer
 
 data Source
   = SourceTable Schema.TableName
@@ -85,6 +86,7 @@ expressionToSql = \case
   EString s -> quoteString s
   EInt i -> Sql $ T.pack $ show i
   ECast e t -> "(" <> expressionToSql e <> ")::" <> Sql t
+  EPlaceholder i -> "$" <> (Sql $ T.pack $ show i)
 
 
 sourceToSql :: Source -> Sql

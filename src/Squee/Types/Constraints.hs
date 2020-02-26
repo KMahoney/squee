@@ -83,3 +83,12 @@ definitionConstraints =
           argEq argT (At loc argT') = At loc (ConsEq argT argT')
           c' = concat $ map (\(arg, argT) -> map (argEq argT) (asLookup arg as)) args'
       return (asRemove args as, c ++ c', foldr T.tFn t argTypes)
+    AST.ExportDef _ args (At expressionLoc expression) -> do
+      (as, c, t) <- expressionConstraints expression
+      argTypes <- replicateM (length args) freshVar
+      returnVar <- freshVar
+      let args' = zip args argTypes
+          argEq argT (At loc argT') = At loc (ConsEq argT argT')
+          argConstraints = concat $ map (\(arg, argT) -> map (argEq argT) (asLookup arg as)) args'
+          resultConstraint = At expressionLoc (ConsEq t (T.tQuery (T.tRow returnVar)))
+      return (asRemove args as, resultConstraint : (argConstraints ++ c), foldr T.tFn t argTypes)
