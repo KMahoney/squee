@@ -125,3 +125,7 @@ fromSchema schema =
 
     columnType :: Schema.Column -> Type
     columnType = flip TypeCon [] . ("~" <>) . Schema.typename . Schema.columnType
+
+
+stdEnv :: Schema.Schema -> Env
+stdEnv = M.union stdLib . fromSchema
