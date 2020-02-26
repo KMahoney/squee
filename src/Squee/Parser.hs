@@ -24,17 +24,18 @@ parseDefinitions = parse definitions
 
 
 replStatement :: Parsec ReplStatement
-replStatement = skipSpace *> (replAssignment <|> replExpression) <* eof
+replStatement = skipSpace *> (replDefinition <|> replExpression) <* eof
   where
-    replAssignment = RSAssignment <$> (keyword "def" *> identifier <* operator ":=") <*> expression
+    replDefinition = RSDefinition <$> definition
     replExpression = RSExpression <$> expression
 
 
 definitions :: Parsec Definitions
 definitions = skipSpace *> (manyTill definition eof)
-  where
-    definition :: Parsec (Symbol, Expression)
-    definition = (,) <$> (keyword "def" *> identifier <* operator ":=") <*> expression
+
+
+definition :: Parsec Definition
+definition = LocalDef <$> (keyword "def" *> identifier) <*> manyTill identifier (operator ":=") <*> expression
 
 
 isIdentifierChar :: Char -> Bool

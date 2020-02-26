@@ -27,34 +27,34 @@ asRemove :: [AST.Symbol] -> [Assumption] -> [Assumption]
 asRemove syms = filter (not . (`elem` syms) . assumptionSymbol)
 
 
-generate :: AST.Expression -> TypeCheck err ([Assumption], [Located Constraint], T.Type)
-generate =
+expressionConstraints :: AST.Expression -> TypeCheck err ([Assumption], [Located Constraint], T.Type)
+expressionConstraints =
   \case
     AST.Var locSymbol -> do
       t <- freshVar
       return ([(locSymbol, t)], [], t)
     AST.App e1 (At argSpan e2) -> do
-      (as1, c1, t1) <- generate e1
-      (as2, c2, t2) <- generate e2
+      (as1, c1, t1) <- expressionConstraints e1
+      (as2, c2, t2) <- expressionConstraints e2
       v <- freshVar
       let c = At argSpan $ ConsEq t1 (t2 `T.tFn` v)
       return (as1 ++ as2, c : c1 ++ c2, v)
     AST.Abs args e -> do
-      (as, c, t) <- generate e
+      (as, c, t) <- expressionConstraints e
       argTypes <- replicateM (length args) freshVar
       let args' = zip args argTypes
           argEq argT (At loc argT') = At loc (ConsEq argT argT')
           c' = concat $ map (\(arg, argT) -> map (argEq argT) (asLookup arg as)) args'
       return (asRemove args as, c ++ c', foldr T.tFn t argTypes)
     AST.Field e (At fieldSpan fieldName) -> do
-      (as, c, t) <- generate e
+      (as, c, t) <- expressionConstraints e
       v <- freshVar
       rowVar <- freshVarInt
       let c' = At fieldSpan (ConsEq t (T.tRow (T.TypeRow (M.singleton fieldName v) (Just rowVar))))
       return (as, c' : c, v)
     AST.BinOp op e1 e2 -> do
-      (as1, c1, t1) <- generate e1
-      (as2, c2, t2) <- generate e2
+      (as1, c1, t1) <- expressionConstraints e1
+      (as2, c2, t2) <- expressionConstraints e2
       v <- freshVar
       opT <- freshVar
       let a = (op, opT)
@@ -66,8 +66,20 @@ generate =
         AST.LitInt _ -> return ([], [], T.tInt4)
         AST.LitRow fields -> do
           (as, c, t) <- foldM (\(as, c, rowT) (name, expr) -> do
-                                  (as', c', exprT) <- generate expr
+                                  (as', c', exprT) <- expressionConstraints expr
                                   return (as ++ as', c ++ c', (name, exprT) : rowT))
                           ([], [], [])
                           fields
           return (as, c, T.tRowList t)
+
+
+definitionConstraints :: AST.Definition -> TypeCheck err ([Assumption], [Located Constraint], T.Type)
+definitionConstraints =
+  \case
+    AST.LocalDef _ args expression -> do
+      (as, c, t) <- expressionConstraints expression
+      argTypes <- replicateM (length args) freshVar
+      let args' = zip args argTypes
+          argEq argT (At loc argT') = At loc (ConsEq argT argT')
+          c' = concat $ map (\(arg, argT) -> map (argEq argT) (asLookup arg as)) args'
+      return (asRemove args as, c ++ c', foldr T.tFn t argTypes)

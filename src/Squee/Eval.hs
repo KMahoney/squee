@@ -94,3 +94,9 @@ evalExpression = \case
       LitInt i -> return $ VSqlExpr $ QB.EInt i
       LitRow fields ->
         VRow . M.fromList <$> mapM (\(field, e) -> (field,) <$> evalExpression e) fields
+
+
+evalDefinition :: Definition -> Eval Value
+evalDefinition = \case
+  LocalDef _ args ast ->
+    return $ VFn $ FnValue (evalAbs args ast) (length args) []

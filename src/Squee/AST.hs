@@ -3,7 +3,9 @@ module Squee.AST
   , LitValue(..)
   , Expression(..)
   , ReplStatement(..)
+  , Definition(..)
   , Definitions
+  , definitionName
   ) where
 
 import Data.Text (Text)
@@ -28,8 +30,16 @@ data Expression
     deriving (Show)
 
 data ReplStatement
-  = RSAssignment Symbol Expression
+  = RSDefinition Definition
   | RSExpression Expression
+
+data Definition
+  = LocalDef Symbol [Symbol] Expression
   
 type Definitions
-  = [(Symbol, Expression)]
+  = [Definition]
+
+
+definitionName :: Definition -> Symbol
+definitionName = \case
+  LocalDef name _ _ -> name

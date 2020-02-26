@@ -1,6 +1,7 @@
 module Squee.Types.Infer
   ( InferError(..)
-  , infer
+  , inferExpression
+  , inferDefinition
   , inferDefinitions
   ) where
 
@@ -88,18 +89,26 @@ solve preds (c:cs) =
       solve preds' cs
 
 
-infer :: Env.TypeEnv -> AST.Expression -> Either InferError T.Qual
-infer env ast = runTypeCheck $ do
-  (assumps, constraints, t) <- Constraints.generate ast
+inferExpression :: Env.TypeEnv -> AST.Expression -> Either InferError T.Qual
+inferExpression env ast = runTypeCheck $ do
+  (assumps, constraints, t) <- Constraints.expressionConstraints ast
   preds <- instantiateAll env assumps
   preds' <- solve preds constraints
   t' <- updateType t
-  return (T.Qual (nub preds') t')
+  return $ T.Qual (nub preds') t'
 
 
-inferDefinitions :: Env.TypeEnv -> AST.Definitions -> Either InferError [(AST.Symbol, T.TypeSchema)]
+inferDefinition :: Env.TypeEnv -> AST.Definition -> Either InferError T.TypeSchema
+inferDefinition env def = runTypeCheck $ do
+  (assumps, constraints, t) <- Constraints.definitionConstraints def
+  preds <- instantiateAll env assumps
+  preds' <- solve preds constraints
+  t' <- updateType t
+  return $ T.generalise S.empty $ T.Qual (nub preds') t'
+
+
+inferDefinitions :: Env.TypeEnv -> AST.Definitions -> Either InferError [(AST.Definition, T.TypeSchema)]
 inferDefinitions _ [] = return []
-inferDefinitions env ((symbol, ast):defs) = do
-  t <- infer env ast
-  let schema = T.generalise S.empty t
-  ((symbol,schema):) <$> inferDefinitions (M.insert symbol schema env) defs
+inferDefinitions env (def:defs) = do
+  schema <- inferDefinition env def
+  ((def,schema):) <$> inferDefinitions (M.insert (AST.definitionName def) schema env) defs

@@ -1,7 +1,6 @@
 module Cli.Command.Repl (run) where
 
 import qualified Data.Map as M
-import qualified Data.Set as S
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Terminal
 import System.Console.Haskeline
@@ -65,22 +64,21 @@ replLoop connection envRef = loop
           loop
         Just expressionInput ->
           case Parser.parseReplStatement (T.pack expressionInput) of
-            Right (AST.RSAssignment sym ast) -> do
-              case T.infer (Env.typeEnv env) ast of
+            Right (AST.RSDefinition def) -> do
+              case T.inferDefinition (Env.typeEnv env) def of
                 Left err -> do
                   outputInferError err
                   newLine
                   loop
-                Right t -> do
+                Right schema -> do
                   newLine
-                  outputText $ (AST.symbolName sym) <> " : " <> (T.showQual (T.normaliseTyVars t))
+                  outputText $ (AST.symbolName (AST.definitionName def)) <> " : " <> (T.showSchema (T.normaliseTyVars schema))
                   newLine
-                  let schema = T.generalise S.empty t
-                      value = Eval.runEval (Env.valueEnv env) (Eval.evalExpression ast)
-                  liftIO $ writeIORef envRef (M.insert sym (value, schema) env)
-                  loop 
+                  let value = Eval.runEval (Env.valueEnv env) (Eval.evalDefinition def)
+                  liftIO $ writeIORef envRef (M.insert (AST.definitionName def) (value, schema) env)
+                  loop
             Right (AST.RSExpression ast) -> do
-              case T.infer (Env.typeEnv env) ast of
+              case T.inferExpression (Env.typeEnv env) ast of
                 Left err ->
                   outputInferError err
                 Right t ->
