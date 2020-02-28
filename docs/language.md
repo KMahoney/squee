@@ -8,6 +8,7 @@ Queries are built out of the following core functions which are described below:
 
 * `map : ({α} → {β}) → [{α}] → [{β}]`
 * `filter : ({α} → ~bool) → [{α}] → [{α}]`
+* `order : (Comparable β) ⇒ ({α} → β) → [{α}] → [{α}]`
 * `natjoin : ({γ} = {α} ⋈ {β}) ⇒ [{α}] → [{β}] → [{γ}]`
 
 ## Types
@@ -96,6 +97,21 @@ SQUEE> filter (\t -> t.a = 1) example
 
 | a | b        |
 +---+----------+
+| 1 | example1 |
+```
+
+## The `order` Function
+
+The order function has type `(Comparable β) ⇒ ({α} → β) → [{α}] → [{α}]`
+
+```
+SQUEE> order (\t -> 0 - t.a) example
+
+: [{a: ~int4, b: ~text}]
+
+| a | b        |
++---+----------+
+| 2 | example2 |
 | 1 | example1 |
 ```
 

@@ -29,6 +29,7 @@ stdLib =
   M.fromList
   [ (Symbol "map", (vfn stdMap 2, stdMapT))
   , (Symbol "filter", (vfn stdFilter 2, stdFilterT))
+  , (Symbol "order", (vfn stdOrder 2, stdOrderT))
   , (Symbol "natjoin", (vfn stdNatJoin 2, stdNatJoinT))
   , (Symbol "|", (vfn stdPipe 2, stdPipeT))
   , stdBinOp "=" stdEqT
@@ -63,6 +64,17 @@ stdLib =
           error "expecting sql expression"
     stdFilter _ = undefined
     stdFilterT = s [0] $ ((row (tv 0)) --> bool) --> query (row (tv 0)) --> query (row (tv 0))
+
+    stdOrder [VFn (FnValue eval _ args), VQuery q] = do
+      let rowValue = M.fromList $ map (\(Schema.ColumnName c) -> (Symbol c, VSqlExpr (QB.EField c))) $ QB.columnNames q
+          result = eval (reverse (VRow rowValue : args))
+      case result of
+        VSqlExpr e ->
+          VQuery (QB.applyOrder e q)
+        _ ->
+          error "expecting sql expression"
+    stdOrder _ = undefined
+    stdOrderT = sq [0, 1] [InClass Comparable (tv 1)] $ ((row (tv 0)) --> (tv 1)) --> query (row (tv 0)) --> query (row (tv 0))
 
     stdMap [VFn (FnValue eval _ args), VQuery q] = do
       let rowValue = M.fromList $ map (\(Schema.ColumnName c) -> (Symbol c, VSqlExpr (QB.EField c))) $ QB.columnNames q
@@ -113,7 +125,7 @@ fromSchema schema =
             
     tableValue :: (Schema.TableName, Schema.Table) -> Value
     tableValue (name, table) =
-      VQuery $ QB.Query (map (\(Schema.ColumnName col) -> (Schema.ColumnName col, QB.EField col)) (M.keys table)) (QB.SourceTable name) [] Nothing
+      VQuery $ QB.Query (map (\(Schema.ColumnName col) -> (Schema.ColumnName col, QB.EField col)) (M.keys table)) (QB.SourceTable name) [] Nothing Nothing
 
     tableType :: Schema.Table -> TypeSchema
     tableType table =

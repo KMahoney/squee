@@ -8,6 +8,7 @@ module Squee.QueryBuilder
   , collectPlaceholders
   , columnNames
   , applyFilter
+  , applyOrder
   , applyMap
   , applyJoin
   , toSql
@@ -45,6 +46,7 @@ data Query
     , querySource :: Source
     , queryJoins :: [Source]
     , queryFilter :: Maybe Expression
+    , queryOrder :: Maybe Expression
     }
 
 data Settings
@@ -90,12 +92,18 @@ applyFilter expression query@(Query { queryFilter }) =
   query { queryFilter = maybe (Just expression) (Just . EBinOp "AND" expression) queryFilter }
 
 
+applyOrder :: Expression -> Query -> Query
+applyOrder expression query =
+  query { queryOrder = Just expression }
+
+
 applyMap :: M.Map Text Expression -> Query -> Query
 applyMap newColumns query =
   Query { columns = map (\(c, e) -> (Schema.ColumnName c, e)) (M.toList newColumns)
         , querySource = SourceQuery query
         , queryJoins = []
         , queryFilter = Nothing
+        , queryOrder = Nothing
         }
 
 
@@ -105,6 +113,7 @@ applyJoin a b =
         , querySource = SourceQuery a
         , queryJoins = [SourceQuery b]
         , queryFilter = Nothing
+        , queryOrder = Nothing
         }
   where
     selectColumn (Schema.ColumnName name) = (Schema.ColumnName name, EField name)
@@ -149,14 +158,15 @@ parens e = "(" <> e <> ")"
 
 
 toSql :: Query -> Build Sql
-toSql (Query { columns, querySource, queryJoins, queryFilter }) = do
+toSql (Query { columns, querySource, queryJoins, queryFilter, queryOrder }) = do
   columns' <- mapM fieldExpressionToSql columns
   querySource' <- sourceToSql querySource
   queryJoins' <- joinSql
   queryFilter' <- filterSql
+  queryOrder' <- orderSql
   return $
     "SELECT" <+> intercalate "," columns' <+>
-    "FROM" <+> querySource' <> " AS x" <> queryJoins' <> queryFilter'
+    "FROM" <+> querySource' <> " AS x" <> queryJoins' <> queryFilter' <> queryOrder'
   where
     joinSql =
       mconcat <$>
@@ -168,6 +178,10 @@ toSql (Query { columns, querySource, queryJoins, queryFilter }) = do
       case queryFilter of
         Nothing -> return ""
         Just e -> (" WHERE" <+>) <$> expressionToSql e
+    orderSql =
+      case queryOrder of
+        Nothing -> return ""
+        Just e -> (" ORDER BY" <+>) <$> expressionToSql e
 
 
 castTextColumns :: Query -> Query

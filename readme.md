@@ -51,10 +51,11 @@ SQUEE> join_example
 | 2 | join_example2 |
 ```
 
-Queries can be built out of `map`, `filter` and `natjoin`:
+Queries can be built out of `map`, `filter`, `order` and `natjoin`:
 
 * `map : ({α} → {β}) → [{α}] → [{β}]`
 * `filter : ({α} → ~bool) → [{α}] → [{α}]`
+* `order : (Comparable β) ⇒ ({α} → β) → [{α}] → [{α}]`
 * `natjoin : ({γ} = {α} ⋈ {β}) ⇒ [{α}] → [{β}] → [{γ}]`
 
 The types are explained in the [language docs](docs/language.md).
