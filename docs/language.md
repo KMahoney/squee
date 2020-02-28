@@ -180,7 +180,7 @@ For example, if we have the file `example.squee`:
 ```
 def notExported := example
 export exportedExample := example
-export filteredExporedExample a := example | filter (\t -> t.a = a)
+export filteredExportedExample a := example | filter (\t -> t.a = a)
 ```
 
 Then the command `squee generate sql-prepare example.squee` will generate:
@@ -189,6 +189,6 @@ Then the command `squee generate sql-prepare example.squee` will generate:
 PREPARE exportedExample AS
   SELECT "a","b" FROM "example" AS x;
 
-PREPARE filteredExporedExample AS
+PREPARE filteredExportedExample AS
   SELECT "a","b" FROM "example" AS x WHERE ("a") = ($1);
 ```

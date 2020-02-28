@@ -121,7 +121,7 @@ The queries can be exported to other languages.
 Given the file `example.squee`:
 ```
 export exportedExample := example
-export filteredExporedExample a := example | filter (\t -> t.a = a)
+export filteredExportedExample a := example | filter (\t -> t.a = a)
 ```
 
 The command `squee generate sql-prepare example.squee` will generate:
@@ -130,7 +130,7 @@ The command `squee generate sql-prepare example.squee` will generate:
 PREPARE exportedExample AS
   SELECT "a","b" FROM "example" AS x;
 
-PREPARE filteredExporedExample AS
+PREPARE filteredExportedExample AS
   SELECT "a","b" FROM "example" AS x WHERE ("a") = ($1);
 ```
 
