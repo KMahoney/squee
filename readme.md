@@ -134,6 +134,20 @@ PREPARE filteredExportedExample AS
   SELECT "a","b" FROM "example" AS x WHERE ("a") = ($1);
 ```
 
+Since Squee is fully type inferred, it can also generate templates for languages that require type annotations:
+
+`squee generate hs-postgresql-simple example.squee`:
+
+```haskell
+exportedExample :: Connection -> IO [(Int, String)]
+exportedExample connection = do
+  query_ connection "SELECT \"a\",\"b\" FROM \"example\" AS x"
+
+filteredExportedExample :: Connection -> Int -> IO [(Int, String)]
+filteredExportedExample connection a = do
+  query connection "SELECT \"a\",\"b\" FROM \"example\" AS x WHERE (\"a\") = (?)" (Only a)
+```
+
 ## Notes and Limitations
 
 * Squee doesn't currently handle nulls or nullable fields.

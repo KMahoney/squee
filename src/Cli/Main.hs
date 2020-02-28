@@ -18,7 +18,8 @@ options = subparser commands
       command "generate" (info (helper <*> subparser generators) generateDesc)
 
     generators =
-      command "sql-prepare" (info (helper <*> generateOpts Generate.sqlPrepare) generateSqlPrepareDesc)
+      command "sql-prepare" (info (helper <*> generateOpts Generate.sqlPrepare) generateSqlPrepareDesc) <>
+      command "hs-postgresql-simple" (info (helper <*> generateOpts Generate.haskell) generateHaskellDesc)
       
     replOpts =
       pure Repl.run
@@ -40,6 +41,9 @@ options = subparser commands
 
     generateSqlPrepareDesc =
       fullDesc <> progDesc "Generate SQL PREPARE statements"
+
+    generateHaskellDesc =
+      fullDesc <> progDesc "Generate Haskell postgresql-simple definitions"
 
 
 main :: IO ()

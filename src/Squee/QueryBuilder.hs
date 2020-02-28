@@ -2,6 +2,10 @@ module Squee.QueryBuilder
   ( Expression(..)
   , Source(..)
   , Query(..)
+  , Settings(..)
+  , buildSqlNoPlaceholder
+  , buildSqlWithPlaceholder
+  , collectPlaceholders
   , columnNames
   , applyFilter
   , applyMap
@@ -16,6 +20,7 @@ import qualified Data.Set as S
 import qualified Data.Text as T
 import Data.Text (Text)
 import Control.Arrow (second)
+import Control.Monad.Reader
 
 import Database.Sql
 import qualified Database.Schema as Schema
@@ -41,6 +46,39 @@ data Query
     , queryJoins :: [Source]
     , queryFilter :: Maybe Expression
     }
+
+data Settings
+  = Settings { placeholderFormat :: Integer -> Sql }
+
+type Build a = Reader Settings a
+
+
+buildSqlNoPlaceholder :: Query -> Sql
+buildSqlNoPlaceholder = buildSqlWithPlaceholder undefined
+
+
+buildSqlWithPlaceholder :: (Integer -> Sql) -> Query -> Sql
+buildSqlWithPlaceholder f query = runReader (toSql query) (Settings f)
+
+
+collectPlaceholders :: Query -> [Integer]
+collectPlaceholders (Query { columns, querySource, queryJoins, queryFilter }) =
+  concatMap colPlaceholders columns ++
+  sourcePlaceholders querySource ++
+  concatMap sourcePlaceholders queryJoins ++
+  maybe [] expressionPlaceholders queryFilter
+
+  where
+    colPlaceholders (_, e) = expressionPlaceholders e
+    sourcePlaceholders = \case
+      SourceTable _ -> []
+      SourceQuery query -> collectPlaceholders query
+    expressionPlaceholders =
+      \case
+        EBinOp _ e1 e2 -> expressionPlaceholders e1 ++ expressionPlaceholders e2
+        ECast e _ -> expressionPlaceholders e
+        EPlaceholder i -> [i]
+        _ -> []
 
 
 columnNames :: Query -> [Schema.ColumnName]
@@ -72,43 +110,64 @@ applyJoin a b =
     selectColumn (Schema.ColumnName name) = (Schema.ColumnName name, EField name)
   
 
-fieldExpressionToSql :: (Schema.ColumnName, Expression) -> Sql
+fieldExpressionToSql :: (Schema.ColumnName, Expression) -> Build Sql
 fieldExpressionToSql (Schema.ColumnName columnName, EField f)
-  | columnName == f = quoteName columnName
-fieldExpressionToSql (Schema.ColumnName columnName, e)
-  = expressionToSql e <+> "AS" <+> quoteName columnName
+  | columnName == f =
+    return (quoteName columnName)
+fieldExpressionToSql (Schema.ColumnName columnName, e) = do
+  e' <- expressionToSql e
+  return $ e' <+> "AS" <+> quoteName columnName
 
 
-expressionToSql :: Expression -> Sql
+expressionToSql :: Expression -> Build Sql
 expressionToSql = \case
-  EField name -> quoteName name
-  EBinOp op e1 e2 -> parens (expressionToSql e1) <+> Sql op <+> parens (expressionToSql e2)
-  EString s -> quoteString s
-  EInt i -> Sql $ T.pack $ show i
-  ECast e t -> "(" <> expressionToSql e <> ")::" <> Sql t
-  EPlaceholder i -> "$" <> (Sql $ T.pack $ show i)
+  EField name ->
+    return (quoteName name)
+  EBinOp op e1 e2 -> do
+    e1' <- expressionToSql e1
+    e2' <- expressionToSql e2
+    return $ parens e1' <+> Sql op <+> parens e2'
+  EString s ->
+    return (quoteString s)
+  EInt i ->
+    return $ Sql $ T.pack $ show i
+  ECast e t -> do
+    e' <- expressionToSql e
+    return $ "(" <> e' <> ")::" <> Sql t
+  EPlaceholder i -> do
+    f <- asks placeholderFormat
+    return (f i)
 
 
-sourceToSql :: Source -> Sql
-sourceToSql (SourceTable name) = quoteName (Schema.tableName name)
-sourceToSql (SourceQuery query) = parens (toSql query)
+sourceToSql :: Source -> Build Sql
+sourceToSql (SourceTable name) = return $ quoteName $ Schema.tableName name
+sourceToSql (SourceQuery query) = parens <$> toSql query
 
 
 parens :: Sql -> Sql
 parens e = "(" <> e <> ")"
 
 
-toSql :: Query -> Sql
-toSql (Query { columns, querySource, queryJoins, queryFilter }) =
-  "SELECT" <+> intercalate "," (map fieldExpressionToSql columns) <+>
-  "FROM" <+> sourceToSql querySource <> " AS x" <> joinSql <> filterSql
+toSql :: Query -> Build Sql
+toSql (Query { columns, querySource, queryJoins, queryFilter }) = do
+  columns' <- mapM fieldExpressionToSql columns
+  querySource' <- sourceToSql querySource
+  queryJoins' <- joinSql
+  queryFilter' <- filterSql
+  return $
+    "SELECT" <+> intercalate "," columns' <+>
+    "FROM" <+> querySource' <> " AS x" <> queryJoins' <> queryFilter'
   where
     joinSql =
-      mconcat $ map (\(i, j) -> " NATURAL JOIN " <> sourceToSql j <> " AS j" <> Sql (T.pack (show i))) (zip [(0::Int)..] queryJoins)
+      mconcat <$>
+      mapM (\(i, j) -> do
+               source' <- sourceToSql j
+               return $
+                 " NATURAL JOIN " <> source' <> " AS j" <> Sql (T.pack (show i))) (zip [(0::Int)..] queryJoins)
     filterSql =
       case queryFilter of
-        Nothing -> ""
-        Just e -> " WHERE" <+> expressionToSql e
+        Nothing -> return ""
+        Just e -> (" WHERE" <+>) <$> expressionToSql e
 
 
 castTextColumns :: Query -> Query
@@ -118,11 +177,12 @@ castTextColumns query@(Query { columns }) =
 
 queryAsText :: PG.Connection -> Query -> IO [[Text]]
 queryAsText conn query =
-  PG.query_ conn (toPGQuery (toSql (castTextColumns query)))
+  PG.query_ conn (toPGQuery (buildSqlNoPlaceholder (castTextColumns query)))
 
 
 expressionAsText :: PG.Connection -> Expression -> IO Text
 expressionAsText conn expression = do
-  let sql = "SELECT (" <> expressionToSql expression <> ")::text"
+  let sql = runReader (expressionToSql (ECast expression "text")) (Settings undefined)
   [[result]] <- PG.query_ conn (toPGQuery sql)
   return result
+
