@@ -1,6 +1,6 @@
 # Squee: A Typed, Composable Database Query Language
 
-**Squee** is an experimental language that breaks relational queries down in to *composable* functions that can be fully inferred with a few extensions to Hindley Milner.
+**Squee** is an experimental language that breaks relational queries down in to *composable* functions that can be fully inferred with a few extensions to Hindley Milner. It compiles to SQL and so can be used with relational databases.
 
 **WARNING**: Squee is **EXPERIMENTAL** and **INCOMPLETE**. Don't use this for anything important!
 
