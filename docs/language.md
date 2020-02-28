@@ -203,8 +203,8 @@ Then the command `squee generate sql-prepare example.squee` will generate:
 
 ```sql
 PREPARE exportedExample AS
-  SELECT "a","b" FROM "example" AS x;
+  SELECT "a","b" FROM "example" AS _t;
 
 PREPARE filteredExportedExample AS
-  SELECT "a","b" FROM "example" AS x WHERE ("a") = ($1);
+  SELECT "a","b" FROM "example" AS _t WHERE ("a") = ($1);
 ```

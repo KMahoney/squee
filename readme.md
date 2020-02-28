@@ -129,10 +129,10 @@ The command `squee generate sql-prepare example.squee` will generate:
 
 ```sql
 PREPARE exportedExample AS
-  SELECT "a","b" FROM "example" AS x;
+  SELECT "a","b" FROM "example" AS _t;
 
 PREPARE filteredExportedExample AS
-  SELECT "a","b" FROM "example" AS x WHERE ("a") = ($1);
+  SELECT "a","b" FROM "example" AS _t WHERE ("a") = ($1);
 ```
 
 Since Squee is fully type inferred, it can also generate templates for languages that require type annotations:
@@ -142,11 +142,11 @@ Since Squee is fully type inferred, it can also generate templates for languages
 ```haskell
 exportedExample :: Connection -> IO [(Int, String)]
 exportedExample connection = do
-  query_ connection "SELECT \"a\",\"b\" FROM \"example\" AS x"
+  query_ connection "SELECT \"a\",\"b\" FROM \"example\" AS _t"
 
 filteredExportedExample :: Connection -> Int -> IO [(Int, String)]
 filteredExportedExample connection a = do
-  query connection "SELECT \"a\",\"b\" FROM \"example\" AS x WHERE (\"a\") = (?)" (Only a)
+  query connection "SELECT \"a\",\"b\" FROM \"example\" AS _t WHERE (\"a\") = (?)" (Only a)
 ```
 
 ## Notes and Limitations

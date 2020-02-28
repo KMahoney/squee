@@ -166,14 +166,14 @@ toSql (Query { columns, querySource, queryJoins, queryFilter, queryOrder }) = do
   queryOrder' <- orderSql
   return $
     "SELECT" <+> intercalate "," columns' <+>
-    "FROM" <+> querySource' <> " AS x" <> queryJoins' <> queryFilter' <> queryOrder'
+    "FROM" <+> querySource' <> " AS _t" <> queryJoins' <> queryFilter' <> queryOrder'
   where
     joinSql =
       mconcat <$>
       mapM (\(i, j) -> do
                source' <- sourceToSql j
                return $
-                 " NATURAL JOIN " <> source' <> " AS j" <> Sql (T.pack (show i))) (zip [(0::Int)..] queryJoins)
+                 " NATURAL JOIN " <> source' <> " AS _j" <> Sql (T.pack (show i))) (zip [(0::Int)..] queryJoins)
     filterSql =
       case queryFilter of
         Nothing -> return ""
