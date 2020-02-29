@@ -3,6 +3,7 @@ module Database.Sql (Sql(..), (<+>), quoteName, quoteString, intercalate, hcat, 
 import qualified Database.PostgreSQL.Simple as PG
 
 import Data.String
+import Data.Char (isAlphaNum, isAlpha)
 import Data.List (intersperse)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -27,11 +28,19 @@ instance Monoid Sql where
 
 
 quoteName :: Text -> Sql
-quoteName s = Sql $ "\"" <> T.concatMap escape s <> "\""
+quoteName s
+  | safeStartChar (T.head s) && T.all safeChar s = Sql s
+  | otherwise = Sql $ "\"" <> T.concatMap escape s <> "\""
   where
     escape :: Char -> Text
     escape '"' = "\\\""
     escape x = T.singleton x
+
+    safeChar :: Char -> Bool
+    safeChar c = isAlphaNum c || c `elem` ("_" :: String)
+
+    safeStartChar :: Char -> Bool
+    safeStartChar c = isAlpha c || c `elem` ("_" :: String)
 
 
 quoteString :: Text -> Sql
