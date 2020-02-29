@@ -70,7 +70,7 @@ buildSqlExpressionNoPlaceholder = buildSqlExpressionWithPlaceholder undefined
 
 
 buildSqlExpressionWithPlaceholder :: (Integer -> Sql) -> Expression -> Sql
-buildSqlExpressionWithPlaceholder f e = runReader (expressionToSql e) (Settings f)
+buildSqlExpressionWithPlaceholder f e = "SELECT " <> runReader (expressionToSql e) (Settings f)
 
 
 collectPlaceholders :: Query -> [Integer]
@@ -201,12 +201,11 @@ castTextColumns query@(Query { columns }) =
 
 queryAsText :: PG.Connection -> Query -> IO [[Text]]
 queryAsText conn query =
-  PG.query_ conn (toPGQuery (buildSqlNoPlaceholder (castTextColumns query)))
+  PG.query_ conn $ toPGQuery $ buildSqlNoPlaceholder $ castTextColumns query
 
 
 expressionAsText :: PG.Connection -> Expression -> IO Text
 expressionAsText conn expression = do
-  let sql = runReader (expressionToSql (ECast expression "text")) (Settings undefined)
-  [[result]] <- PG.query_ conn (toPGQuery sql)
+  [[result]] <- PG.query_ conn $ toPGQuery $ buildSqlExpressionNoPlaceholder (ECast expression "text")
   return result
 
