@@ -149,6 +149,10 @@ filteredExportedExample connection a = do
   query connection "SELECT \"a\",\"b\" FROM \"example\" AS _t WHERE (\"a\") = (?)" (Only a)
 ```
 
+## Installation
+
+Install [Stack](https://docs.haskellstack.org/en/stable/README/#how-to-install), clone the repo, and then `stack install`.
+
 ## Notes and Limitations
 
 * Squee doesn't currently handle nulls or nullable fields.
