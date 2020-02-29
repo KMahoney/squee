@@ -20,6 +20,7 @@ stdLib =
   , (Symbol "filter", stdFilter)
   , (Symbol "order", stdOrder)
   , (Symbol "natjoin", stdNatJoin)
+  , (Symbol "join", stdJoin)
   , (Symbol "|", stdPipe)
   , stdBinOp "=" stdEqT
   , stdBinOp "+" stdNumOpT
@@ -48,6 +49,10 @@ schemaQual i q t = Type.TypeSchema i (Type.Qual q t)
 queryToRowValue :: QB.Query -> Value
 queryToRowValue =
   VRow . M.fromList . map (\(Schema.ColumnName c) -> (Symbol c, VSqlExpr (QB.EField c))) . QB.columnNames
+
+queryToQualRowValue :: Schema.TableName -> QB.Query -> Value
+queryToQualRowValue (Schema.TableName table) =
+  VRow . M.fromList . map (\(Schema.ColumnName c) -> (Symbol c, VSqlExpr (QB.EQualifiedField table c))) . QB.columnNames
 
 (-->) :: Type.Type -> Type.Type -> Type.Type
 (-->) = tFn
@@ -107,10 +112,34 @@ stdNatJoin :: EnvEntry
 stdNatJoin = (fnValue impl 2, ty)
   where
     impl [VQuery a, VQuery b] =
-      VQuery $ QB.applyJoin a b
+      VQuery $ QB.applyNatJoin a b
     impl _ = undefined
     ty = schemaQual [0, 1, 2] [Type.NatJoin (tv 2) (tv 0) (tv 1)] $
       tQuery (tRow (tv 0)) --> tQuery (tRow (tv 1)) --> tQuery (tRow (tv 2))
+
+
+-- Join
+
+stdJoin :: EnvEntry
+stdJoin = (fnValue impl 4, ty)
+  where
+    impl [VFn condFn, VFn mergeFn, VQuery a, VQuery b] =
+      let rowA = queryToQualRowValue (Schema.TableName "_t") a
+          rowB = queryToQualRowValue (Schema.TableName "_j0") b
+          VSqlExpr cond = fnEval condFn [rowA, rowB]
+          VRow merge = fnEval mergeFn [rowA, rowB]
+          merge' = M.fromList $ map (\(Symbol k, VSqlExpr expr) -> (k, expr)) $ M.toList merge
+      in
+        VQuery $ QB.applyJoin cond merge' a b
+    impl values = error $ "invalid join application: " <> show values
+    rA = tRow (tv 0)
+    rB = tRow (tv 1)
+    rC = tRow (tv 2)
+    qA = tQuery rA
+    qB = tQuery rB
+    qC = tQuery rC
+    ty = schema [0, 1, 2] $
+      (rA --> rB --> tBool) --> (rA --> rB --> rC) --> qA --> qB --> qC
 
 
 -- Pipe

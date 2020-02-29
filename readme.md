@@ -51,12 +51,13 @@ SQUEE> join_example
 | 2 | join_example2 |
 ```
 
-Queries can be built out of `map`, `filter`, `order` and `natjoin`:
+Queries can be built out of `map`, `filter`, `order`, `natjoin` and `join`:
 
 * `map : ({α} → {β}) → [{α}] → [{β}]`
 * `filter : ({α} → ~bool) → [{α}] → [{α}]`
 * `order : (Comparable β) ⇒ ({α} → β) → [{α}] → [{α}]`
 * `natjoin : ({γ} = {α} ⋈ {β}) ⇒ [{α}] → [{β}] → [{γ}]`
+* `join : ({α} → {β} → ~bool) → ({α} → {β} → {γ}) → [{α}] → [{β}] → [{γ}]`
 
 The types are explained in the [language docs](docs/language.md).
 
@@ -156,9 +157,9 @@ Install [Stack](https://docs.haskellstack.org/en/stable/README/#how-to-install),
 ## Notes and Limitations
 
 * Squee doesn't currently handle nulls or nullable fields.
-* There is a flat namespace for fields (as opposed to SQL's qualified field names i.e. `table.column`), so you can't join two tables containing the same field name without joining on those fields. This is a choice rather than a technical limitation - let's see how annoying it is!
+* Rows have a flat namespace, as opposed to SQL's qualified field names i.e. `table.column`. A row cannot have duplicate field names because there's no way to disambiguate them.
 * Very few SQL operators/functions are currently available. Basically just arithmetic operations (`=` `+` `-` `*` `/`) right now.
-* Only natural joins are currently available. Arbitrary join conditions shouldn't be too hard, but left/right joins require null handling.
+* Only natural and inner joins are currently available. Left/right joins require null handling.
 * I'm not sure how to handle aggregations yet.
 * The next objective is quality error reporting.
 

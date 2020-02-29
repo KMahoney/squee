@@ -12,6 +12,7 @@ module Squee.QueryBuilder
   , applyFilter
   , applyOrder
   , applyMap
+  , applyNatJoin
   , applyJoin
   , toSql
   , queryAsText
@@ -32,24 +33,33 @@ import qualified Database.PostgreSQL.Simple as PG
 
 data Expression
   = EField Text
+  | EQualifiedField Text Text
   | EBinOp Text Expression Expression
   | EString Text
   | EInt Integer
   | ECast Expression Text
   | EPlaceholder Integer
+  deriving (Show)
 
 data Source
   = SourceTable Schema.TableName
   | SourceQuery Query
+  deriving (Show)
+
+data Join
+  = NatJoin Source
+  | JoinOn Expression Source
+  deriving (Show)
 
 data Query
   = Query
     { columns :: [(Schema.ColumnName, Expression)]
     , querySource :: Source
-    , queryJoins :: [Source]
+    , queryJoins :: [Join]
     , queryFilter :: Maybe Expression
     , queryOrder :: Maybe Expression
     }
+  deriving (Show)
 
 data Settings
   = Settings { placeholderFormat :: Integer -> Sql }
@@ -77,7 +87,7 @@ collectPlaceholders :: Query -> [Integer]
 collectPlaceholders (Query { columns, querySource, queryJoins, queryFilter }) =
   concatMap colPlaceholders columns ++
   sourcePlaceholders querySource ++
-  concatMap sourcePlaceholders queryJoins ++
+  concatMap joinPlaceholders queryJoins ++
   maybe [] expressionPlaceholders queryFilter
 
   where
@@ -85,6 +95,9 @@ collectPlaceholders (Query { columns, querySource, queryJoins, queryFilter }) =
     sourcePlaceholders = \case
       SourceTable _ -> []
       SourceQuery query -> collectPlaceholders query
+    joinPlaceholders = \case
+      NatJoin source -> sourcePlaceholders source
+      JoinOn e source -> sourcePlaceholders source ++ expressionPlaceholders e
     expressionPlaceholders =
       \case
         EBinOp _ e1 e2 -> expressionPlaceholders e1 ++ expressionPlaceholders e2
@@ -117,16 +130,26 @@ applyMap newColumns query =
         }
 
 
-applyJoin :: Query -> Query -> Query
-applyJoin a b =
+applyNatJoin :: Query -> Query -> Query
+applyNatJoin a b =
   Query { columns = map selectColumn (S.toList (S.fromList (columnNames a) `S.union` S.fromList (columnNames b)))
         , querySource = SourceQuery a
-        , queryJoins = [SourceQuery b]
+        , queryJoins = [NatJoin (SourceQuery b)]
         , queryFilter = Nothing
         , queryOrder = Nothing
         }
   where
     selectColumn (Schema.ColumnName name) = (Schema.ColumnName name, EField name)
+
+
+applyJoin :: Expression -> M.Map Text Expression -> Query -> Query -> Query
+applyJoin cond merge a b =
+  Query { columns = map (\(c, e) -> (Schema.ColumnName c, e)) (M.toList merge)
+        , querySource = SourceQuery a
+        , queryJoins = [JoinOn cond (SourceQuery b)]
+        , queryFilter = Nothing
+        , queryOrder = Nothing
+        }
   
 
 fieldExpressionToSql :: (Schema.ColumnName, Expression) -> Build Sql
@@ -142,6 +165,8 @@ expressionToSql :: Expression -> Build Sql
 expressionToSql = \case
   EField name ->
     return (quoteName name)
+  EQualifiedField table name ->
+    return $ quoteName table <> "." <> quoteName name
   EBinOp op e1 e2 -> do
     e1' <- expressionToSql e1
     e2' <- expressionToSql e2
@@ -163,6 +188,20 @@ sourceToSql (SourceTable name) = return $ quoteName $ Schema.tableName name
 sourceToSql (SourceQuery query) = parens <$> toSql query
 
 
+joinToSql :: Int -> Join -> Build Sql
+joinToSql i = \case
+  NatJoin source -> do
+    source' <- sourceToSql source
+    return $ " NATURAL JOIN" <+> source' <+> name
+  JoinOn e source -> do
+    e' <- expressionToSql e
+    source' <- sourceToSql source
+    return $ " INNER JOIN" <+> source' <+> name <+> "ON (" <> e' <> ")"
+
+  where
+    name = "AS _j" <> Sql (T.pack (show i))
+
+
 parens :: Sql -> Sql
 parens e = "(" <> e <> ")"
 
@@ -179,11 +218,7 @@ toSql (Query { columns, querySource, queryJoins, queryFilter, queryOrder }) = do
     "FROM" <+> querySource' <> " AS _t" <> queryJoins' <> queryFilter' <> queryOrder'
   where
     joinSql =
-      mconcat <$>
-      mapM (\(i, j) -> do
-               source' <- sourceToSql j
-               return $
-                 " NATURAL JOIN " <> source' <> " AS _j" <> Sql (T.pack (show i))) (zip [(0::Int)..] queryJoins)
+      mconcat <$> mapM (uncurry joinToSql) (zip [(0::Int)..] queryJoins)
     filterSql =
       case queryFilter of
         Nothing -> return ""

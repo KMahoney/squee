@@ -24,6 +24,11 @@ data Value
   | VFn FnValue
   | VRow ValueEnv
   | VSqlExpr QB.Expression
+  deriving (Show)
+
+
+instance Show FnValue where
+  show (FnValue { fnArity }) = "fn/" <> show fnArity
 
 
 envLookup :: Located Symbol -> Eval Value

@@ -10,6 +10,7 @@ Queries are built out of the following core functions which are described below:
 * `filter : ({α} → ~bool) → [{α}] → [{α}]`
 * `order : (Comparable β) ⇒ ({α} → β) → [{α}] → [{α}]`
 * `natjoin : ({γ} = {α} ⋈ {β}) ⇒ [{α}] → [{β}] → [{γ}]`
+* `join : ({α} → {β} → ~bool) → ({α} → {β} → {γ}) → [{α}] → [{β}] → [{γ}]`
 
 ## Types
 
@@ -142,6 +143,24 @@ SQUEE> natjoin example join_example
 | a | b        | c             |
 +---+----------+---------------+
 | 1 | example1 | join_example1 |
+| 2 | example2 | join_example2 |
+```
+
+## The `join` Function
+
+The generalised inner join function has the type `({α} → {β} → ~bool) → ({α} → {β} → {γ}) → [{α}] → [{β}] → [{γ}]`.
+
+The first argument is the condition on which to join, and the second argument merges the two rows in to one.
+
+```
+SQUEE> join (\a b -> a.a < b.a + 1) (\a b -> {a: a.a, b: a.b, c: b.c}) example join_example
+
+: [{a: ~int4, b: ~text, c: ~text}]
+
+| a | b        | c             |
++---+----------+---------------+
+| 1 | example1 | join_example1 |
+| 1 | example1 | join_example2 |
 | 2 | example2 | join_example2 |
 ```
 
