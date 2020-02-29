@@ -9,17 +9,17 @@ import qualified Cli.Command.Generate as Generate
 
 
 options :: Parser (IO ())
-options = subparser commands
+options = hsubparser commands
 
   where
     commands =
-      command "repl" (info (helper <*> replOpts) replDesc) <>
-      command "check" (info (helper <*> checkOpts) checkDesc) <>
-      command "generate" (info (helper <*> subparser generators) generateDesc)
+      command "repl" (info replOpts replDesc) <>
+      command "check" (info checkOpts checkDesc) <>
+      command "generate" (info (hsubparser generators) generateDesc)
 
     generators =
-      command "sql-prepare" (info (helper <*> generateOpts Generate.sqlPrepare) generateSqlPrepareDesc) <>
-      command "hs-postgresql-simple" (info (helper <*> generateOpts Generate.haskell) generateHaskellDesc)
+      command "sql-prepare" (info (generateOpts Generate.sqlPrepare) generateSqlPrepareDesc) <>
+      command "hs-postgresql-simple" (info (generateOpts Generate.haskell) generateHaskellDesc)
       
     replOpts =
       pure Repl.run
