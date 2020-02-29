@@ -25,29 +25,29 @@ options = hsubparser commands
       pure Repl.run
       
     replDesc =
-      fullDesc <> progDesc "Start REPL"
+      progDesc "Start REPL"
 
     checkOpts =
       Check.run <$> many (strArgument (metavar "FILENAME"))
       
     checkDesc =
-      fullDesc <> progDesc "Check for errors"
+      progDesc "Check for errors"
 
     generateOpts generator =
       Generate.run generator <$> strArgument (metavar "FILENAME")
 
     generateDesc =
-      fullDesc <> progDesc "Generate code from export statements"
+      progDesc "Generate code from export statements"
 
     generateSqlPrepareDesc =
-      fullDesc <> progDesc "Generate SQL PREPARE statements"
+      progDesc "Generate SQL PREPARE statements"
 
     generateHaskellDesc =
-      fullDesc <> progDesc "Generate Haskell postgresql-simple definitions"
+      progDesc "Generate Haskell postgresql-simple definitions"
 
 
 main :: IO ()
 main = join (customExecParser optPrefs opts)
   where
     optPrefs = prefs (columns 120 <> showHelpOnEmpty)
-    opts = info (helper <*> options) fullDesc
+    opts = info (helper <*> options) mempty
