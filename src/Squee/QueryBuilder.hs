@@ -5,6 +5,8 @@ module Squee.QueryBuilder
   , Settings(..)
   , buildSqlNoPlaceholder
   , buildSqlWithPlaceholder
+  , buildSqlExpressionNoPlaceholder
+  , buildSqlExpressionWithPlaceholder
   , collectPlaceholders
   , columnNames
   , applyFilter
@@ -61,6 +63,14 @@ buildSqlNoPlaceholder = buildSqlWithPlaceholder undefined
 
 buildSqlWithPlaceholder :: (Integer -> Sql) -> Query -> Sql
 buildSqlWithPlaceholder f query = runReader (toSql query) (Settings f)
+
+
+buildSqlExpressionNoPlaceholder :: Expression -> Sql
+buildSqlExpressionNoPlaceholder = buildSqlExpressionWithPlaceholder undefined
+
+
+buildSqlExpressionWithPlaceholder :: (Integer -> Sql) -> Expression -> Sql
+buildSqlExpressionWithPlaceholder f e = runReader (expressionToSql e) (Settings f)
 
 
 collectPlaceholders :: Query -> [Integer]
