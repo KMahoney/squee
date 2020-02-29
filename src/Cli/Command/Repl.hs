@@ -22,6 +22,7 @@ import qualified Squee.Types.Type as T
 import Squee.AST (symbolName)
 import Squee.Env (Env)
 import qualified Squee.Env as Env
+import Squee.StdLib (stdLib)
 import Database.Schema (Schema)
 import qualified Database.Schema as Schema
 
@@ -46,7 +47,7 @@ completions envRef (left, _) =
     
 
 stdEnv :: Schema -> Env
-stdEnv = M.union Env.stdLib . Env.fromSchema
+stdEnv = M.union stdLib . Env.fromSchema
 
 
 replLoop :: Connection -> IORef Env -> InputT IO ()

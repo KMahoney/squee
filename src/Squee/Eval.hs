@@ -41,9 +41,9 @@ runEval env eval =
 
 evalFn :: FnValue -> [Value] -> Value
 evalFn fn@(FnValue { fnEval, fnArity, fnArgs }) args =
-  let args' = reverse args ++ fnArgs in
+  let args' = reverse fnArgs ++ args in
     if length args' == fnArity
-    then fnEval (reverse args')
+    then fnEval args'
     else VFn $ fn { fnArgs = args' }
   
 
