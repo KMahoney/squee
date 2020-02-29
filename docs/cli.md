@@ -19,3 +19,21 @@ squee check FILENAME
 ```
 
 will typecheck the Squee file against the database.
+
+## Generate
+
+```
+squee generate GENERATOR FILENAME
+```
+
+will generate code from all `export` declarations in `FILENAME`.
+
+Currently available generators include:
+
+### sql-prepare
+
+Generates standard SQL `PREPARE` statements.
+
+### hs-postgresql-simple
+
+Generates Haskell for querying the database via the `postgresql-simple` library.
