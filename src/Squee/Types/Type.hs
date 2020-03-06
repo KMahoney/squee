@@ -19,10 +19,12 @@ data Qual = Qual [Pred] Type
 data TypeClass
   = Num
   | Comparable
+  | DbValue
   deriving (Show, Eq)
 
 data Pred
   = InClass TypeClass Type
+  | ValuesInClass TypeClass Type
   | NatJoin Type Type Type
   deriving (Show, Eq)
 
@@ -65,8 +67,10 @@ instance Types Type where
 
 instance Types Pred where
   tv (InClass _ t) = tv t
+  tv (ValuesInClass _ t) = tv t
   tv (NatJoin a b c) = S.unions (map tv [a, b, c])
   applySubst s (InClass tc t) = InClass tc (applySubst s t)
+  applySubst s (ValuesInClass tc t) = ValuesInClass tc (applySubst s t)
   applySubst s (NatJoin a b c) = NatJoin (applySubst s a) (applySubst s b) (applySubst s c)
 
 instance Types Qual where

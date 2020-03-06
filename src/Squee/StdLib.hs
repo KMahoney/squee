@@ -40,6 +40,9 @@ fnValue f arity = VFn (FnValue f arity [])
 tv :: Int -> Type.Type
 tv = Type.TypeVar
 
+dbRow :: Int -> Type.Pred
+dbRow = Type.ValuesInClass Type.DbValue . tv
+
 schema :: [Int] -> Type.Type -> Type.TypeSchema
 schema i = Type.TypeSchema i . Type.Qual []
 
@@ -71,7 +74,7 @@ stdFilter = (fnValue impl 2, ty)
         _ ->
           error "expecting sql expression"
     impl _ = undefined
-    ty = schema [0] $ ((tRow (tv 0)) --> tBool) --> tQuery (tRow (tv 0)) --> tQuery (tRow (tv 0))
+    ty = schemaQual [0] [dbRow 0] $ ((tRow (tv 0)) --> tBool) --> tQuery (tRow (tv 0)) --> tQuery (tRow (tv 0))
 
 
 -- Order
@@ -86,7 +89,7 @@ stdOrder = (fnValue impl 2, ty)
         _ ->
           error "expecting sql expression"
     impl _ = undefined
-    ty = schemaQual [0, 1] [Type.InClass Type.Comparable (tv 1)] $
+    ty = schemaQual [0, 1] [dbRow 0, Type.InClass Type.Comparable (tv 1)] $
       ((tRow (tv 0)) --> (tv 1)) --> tQuery (tRow (tv 0)) --> tQuery (tRow (tv 0))
 
 
@@ -103,7 +106,7 @@ stdMap = (fnValue impl 2, ty)
         _ ->
           error "expecting row"
     impl _ = undefined
-    ty = schema [0, 1] $ ((tRow (tv 0)) --> tRow (tv 1)) --> tQuery (tRow (tv 0)) --> tQuery (tRow (tv 1))
+    ty = schemaQual [0, 1] [dbRow 0, dbRow 1] $ ((tRow (tv 0)) --> tRow (tv 1)) --> tQuery (tRow (tv 0)) --> tQuery (tRow (tv 1))
 
 
 -- Natural Join
@@ -114,7 +117,7 @@ stdNatJoin = (fnValue impl 2, ty)
     impl [VQuery a, VQuery b] =
       VQuery $ QB.applyNatJoin a b
     impl _ = undefined
-    ty = schemaQual [0, 1, 2] [Type.NatJoin (tv 2) (tv 0) (tv 1)] $
+    ty = schemaQual [0, 1, 2] [dbRow 0, dbRow 1, dbRow 2, Type.NatJoin (tv 2) (tv 0) (tv 1)] $
       tQuery (tRow (tv 0)) --> tQuery (tRow (tv 1)) --> tQuery (tRow (tv 2))
 
 
@@ -138,7 +141,7 @@ stdJoin = (fnValue impl 4, ty)
     qA = tQuery rA
     qB = tQuery rB
     qC = tQuery rC
-    ty = schema [0, 1, 2] $
+    ty = schemaQual [0, 1, 2] [dbRow 0, dbRow 1, dbRow 2] $
       (rA --> rB --> tBool) --> (rA --> rB --> rC) --> qA --> qB --> qC
 
 

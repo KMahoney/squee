@@ -25,17 +25,27 @@ showType (TypeRow fields var) =
 
 
 showPred :: Pred -> Text
-showPred (InClass tc t) = "(" <> className tc <> " " <> showType t <> ")"
+showPred = \case
+  InClass tc t -> "(" <> className tc <> " " <> showType t <> ")"
+  ValuesInClass tc t -> "(" <> className tc <> " v, (k, v) ∈ " <> showType t <> ")"
+  NatJoin a b c -> "({" <> showType a <> "} = {" <> showType b <> "} ⋈ {" <> showType c <> "})"
+
   where
     className = \case
       Num -> "Num"
       Comparable -> "Comparable"
-showPred (NatJoin a b c) = "({" <> showType a <> "} = {" <> showType b <> "} ⋈ {" <> showType c <> "})"
+      DbValue -> "DB"
 
 
 showQual :: Qual -> Text
 showQual (Qual [] t) = showType t
-showQual (Qual preds t) = intercalate " " (map showPred preds) <> " ⇒ " <> showType t
+showQual (Qual preds t) = intercalate " " (map showPred (filter (not . isDbRow) preds)) <> " ⇒ " <> showType t
+  where
+    -- Don't show the DB-row restriction since it's so common and causes a lot of noise
+    -- TODO: find a better way of showing this
+    isDbRow = \case
+      ValuesInClass DbValue _ -> True
+      _ -> False
 
 
 showSchema :: TypeSchema -> Text
