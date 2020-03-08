@@ -16,6 +16,7 @@ import RangedParsec (Located(..), SourceSpan, SourcePos, firstSourcePos)
 import qualified Squee.AST as AST
 import qualified Squee.Env as Env
 import qualified Squee.Types.Type as T
+import qualified Squee.Types.CommonType as T
 import qualified Squee.Types.Unify as T
 import qualified Squee.Types.Constraints as Constraints
 import Squee.Types.Monad.TypeCheck
@@ -68,6 +69,14 @@ reducePreds loc (p:ps) = do
     (T.NatJoin a (T.TypeRow f1 Nothing) (T.TypeRow f2 Nothing)) -> do
       reduceJoin p' a f1 f2
       reducePreds loc ps
+    (T.AggValues a b)
+      | isRowVar a && isRowVar b -> (p':) <$> reducePreds loc ps
+    (T.AggValues a (T.TypeRow fs Nothing)) -> do
+      reduceAgg1 a fs
+      reducePreds loc ps
+    (T.AggValues (T.TypeRow fs Nothing) b) -> do
+      reduceAgg2 fs b
+      reducePreds loc ps
     _ -> throwError (InferPredViolation (At loc [p']))
   where
     numTypes = ["~int2", "~int4", "~int8", "~numeric", "~float4", "~float8"]
@@ -95,6 +104,18 @@ reducePreds loc (p:ps) = do
       | otherwise = do
           forM_ (M.elems $ M.intersectionWith (,) f1 f2) (uncurry (unify loc))
           unify loc a (T.TypeRow (M.union f1 f2) Nothing)
+
+    reduceAgg1 :: T.Type -> M.Map AST.Symbol T.Type -> TypeCheck InferError ()
+    reduceAgg1 t fs = unify loc t (T.TypeRow (aggFields fs) Nothing)
+
+    reduceAgg2 :: M.Map AST.Symbol T.Type -> T.Type -> TypeCheck InferError ()
+    reduceAgg2 fs t = do
+      fsVars <- M.fromList . zip (M.keys fs) <$> replicateM (M.size fs) freshVar
+      unify loc (T.TypeRow (aggFields fsVars) Nothing) (T.TypeRow fs Nothing)
+      unify loc t (T.TypeRow fsVars Nothing)
+
+    aggFields :: M.Map AST.Symbol T.Type -> M.Map AST.Symbol T.Type
+    aggFields = M.fromList . map (\(sym, t) -> (sym, T.tAgg t)) . M.toList
   
 
 solve :: [T.Pred] -> [Located Constraints.Constraint] -> TypeCheck InferError [T.Pred]

@@ -6,6 +6,7 @@ module Squee.Types.CommonType
   , tQuery
   , tRow
   , tRowList
+  , tAgg
   ) where
 
 import qualified Data.Map as M
@@ -33,3 +34,6 @@ tQuery t = T.TypeCon "Query" [t]
 
 tRowList :: [(AST.Symbol, T.Type)] -> T.Type
 tRowList = tRow . flip T.TypeRow Nothing . M.fromList
+
+tAgg :: T.Type -> T.Type
+tAgg t = T.TypeCon "Agg" [t]

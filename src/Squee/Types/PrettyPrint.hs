@@ -29,6 +29,7 @@ showPred = \case
   InClass tc t -> "(" <> className tc <> " " <> showType t <> ")"
   ValuesInClass tc t -> "(" <> className tc <> " v, (k, v) ∈ " <> showType t <> ")"
   NatJoin a b c -> "({" <> showType a <> "} = {" <> showType b <> "} ⋈ {" <> showType c <> "})"
+  AggValues a b -> "({" <> showType a <> "} = Agg {" <> showType b <> "})"
 
   where
     className = \case

@@ -39,6 +39,8 @@ data Expression
   | EInt Integer
   | ECast Expression Text
   | EPlaceholder Integer
+  | EFn Text [Expression]
+  | ERaw Text
   deriving (Show)
 
 data Source
@@ -181,6 +183,11 @@ expressionToSql = \case
   EPlaceholder i -> do
     f <- asks placeholderFormat
     return (f i)
+  EFn name args -> do
+    args' <- mapM expressionToSql args
+    return $ Sql name <> "(" <> intercalate ", " args' <> ")"
+  ERaw x ->
+    return (Sql x)
 
 
 sourceToSql :: Source -> Build Sql

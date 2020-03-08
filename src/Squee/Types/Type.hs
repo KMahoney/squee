@@ -26,6 +26,7 @@ data Pred
   = InClass TypeClass Type
   | ValuesInClass TypeClass Type
   | NatJoin Type Type Type
+  | AggValues Type Type
   deriving (Show, Eq)
 
 data TypeSchema = TypeSchema [Int] Qual
@@ -69,9 +70,11 @@ instance Types Pred where
   tv (InClass _ t) = tv t
   tv (ValuesInClass _ t) = tv t
   tv (NatJoin a b c) = S.unions (map tv [a, b, c])
+  tv (AggValues a b) = S.unions (map tv [a, b])
   applySubst s (InClass tc t) = InClass tc (applySubst s t)
   applySubst s (ValuesInClass tc t) = ValuesInClass tc (applySubst s t)
   applySubst s (NatJoin a b c) = NatJoin (applySubst s a) (applySubst s b) (applySubst s c)
+  applySubst s (AggValues a b) = AggValues (applySubst s a) (applySubst s b)
 
 instance Types Qual where
   tv (Qual preds t) = S.union (tv preds) (tv t)

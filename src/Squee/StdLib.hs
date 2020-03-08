@@ -22,6 +22,11 @@ stdLib =
   , (Symbol "natjoin", stdNatJoin)
   , (Symbol "join", stdJoin)
   , (Symbol "|", stdPipe)
+
+  , (Symbol "aggregate", stdAggregate)
+  , (Symbol "sum", stdSum)
+  , (Symbol "count", stdCount)
+
   , stdBinOp "=" stdEqT
   , stdBinOp "+" stdNumOpT
   , stdBinOp "-" stdNumOpT
@@ -153,6 +158,40 @@ stdPipe = (fnValue impl 2, ty)
     impl [x, VFn fn] = evalFn fn [x]
     impl _ = undefined
     ty = schema [0, 1] $ tv 0 --> (tv 0 --> tv 1) --> tv 1
+
+
+-- Aggregate
+
+stdAggregate :: EnvEntry
+stdAggregate = (fnValue impl 2, ty)
+  where
+    impl [VFn fn, VQuery q] =
+      case evalFn fn [queryToRowValue q] of
+        VRow rowExprs ->
+          let rowExprs' = M.fromList $ map (\(Symbol k, VSqlExpr expr) -> (k, expr)) $ M.toList rowExprs in
+            VQuery (QB.applyMap rowExprs' q)
+        _ ->
+          error "expecting row"
+    impl _ = undefined
+    ty = schemaQual [0, 1, 2] [dbRow 0, dbRow 2, Type.AggValues (tv 1) (tv 2)] $ ((tRow (tv 0)) --> tRow (tv 1)) --> tQuery (tRow (tv 0)) --> tQuery (tRow (tv 2))
+
+
+-- Sum
+
+stdSum :: EnvEntry
+stdSum = (fnValue impl 1, ty)
+  where
+    impl [VSqlExpr x] = VSqlExpr $ QB.EFn "sum" [x]
+    impl _ = undefined
+    ty = schemaQual [0] [Type.InClass Type.Num (tv 0)] $ tv 0 --> tAgg (tv 0)
+
+
+-- Count
+
+stdCount :: EnvEntry
+stdCount = (VSqlExpr (QB.ERaw "count(*)"), ty)
+  where
+    ty = schema [] $ tAgg tInt4
 
 
 -- Binary operations

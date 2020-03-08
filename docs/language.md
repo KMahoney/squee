@@ -11,6 +11,7 @@ Queries are built out of the following core functions which are described below:
 * `order : (Comparable β) ⇒ ({α} → β) → [{α}] → [{α}]`
 * `natjoin : ({γ} = {α} ⋈ {β}) ⇒ [{α}] → [{β}] → [{γ}]`
 * `join : ({α} → {β} → ~bool) → ({α} → {β} → {γ}) → [{α}] → [{β}] → [{γ}]`
+* `aggregate : ({β} = Agg {γ}) ⇒ ({α} → {β}) → [{α}] → [{γ}]`
 
 ## Types
 
@@ -41,10 +42,13 @@ Queries are built out of the following core functions which are described below:
 * `α → α` is the type of the identity function that takes any value and returns the same value.
 * `~int4 → ~int4 → ~bool` can be considered a function that takes two integers and returns a boolean. Because the arrow is right associative (`~int4 → (~int4 → ~bool)`), it is technically a function that accepts an `~int4` and returns a new function `~int4 → ~bool` i.e. it can be partially applied.
 
-**Type constraints** come before a double arrow (`⇒`) e.g.
+**Type constraints** come before a double arrow (`⇒`)
 
-* `(Num α) ⇒ α → α → α` takes two numbers (`~int4`, `~numeric`, etc.) and returns a number of the same type.
-* `({γ} = {α} ⋈ {β}) ⇒ [{α}] → [{β}] → [{γ}]` takes two query results and returns their natural join. The intersection of the two rows must not be empty (they must have at least one field in common).
+* `(Num α)` requires that the type `α` is a number (`~int2/4/8`, `~numeric` or `~float4/8`).
+* `(Comparable α)` requires that the type `α` is a comparable. Most primitive types are valid.
+* `(DB α)` requires that the type `α` can be represented in the underlying database. Any type starting with a tilde (`~`) is valid.
+* `({γ} = {α} ⋈ {β})` requires that `{γ}` is the natural join of `{α}` and `{β}`. `{α}` and `{β}` must have at least one field in common.
+* `({β} = Agg {γ})` requires that `{β}` contains the aggregated types of `{γ}` e.g. `({x: Agg ~int4, y: Agg ~text} = Agg {x: ~int4, y: ~text})`
 
 ## Tables
 
@@ -162,6 +166,27 @@ SQUEE> join (\a b -> a.a < b.a + 1) (\a b -> {a: a.a, b: a.b, c: b.c}) example j
 | 1 | example1 | join_example1 |
 | 1 | example1 | join_example2 |
 | 2 | example2 | join_example2 |
+```
+
+## The `aggregate` Function
+
+The aggregate function has type `({β} = Agg {γ}) ⇒ ({α} → {β}) → [{α}] → [{γ}]`.
+
+The first argument is the mapping from a row to an aggregate result.
+
+Functions that return aggregate results include:
+
+* `sum : (Num α) ⇒ α → Agg α`
+* `count : Agg ~int4`
+
+```
+SQUEE> aggregate (\t -> {sum: sum t.a, count: count}) example
+
+: [{count: ~int4, sum: ~int4}]
+
+| count | sum |
++-------+-----+
+| 2     | 3   |
 ```
 
 ## Pipe Operator
