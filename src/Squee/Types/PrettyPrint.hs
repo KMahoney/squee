@@ -38,8 +38,10 @@ showPred = \case
 
 
 showQual :: Qual -> Text
-showQual (Qual [] t) = showType t
-showQual (Qual preds t) = intercalate " " (map showPred (filter (not . isDbRow) preds)) <> " ⇒ " <> showType t
+showQual (Qual preds t) =
+  case filter (not . isDbRow) preds of
+    [] -> showType t
+    preds' -> intercalate " " (map showPred preds') <> " ⇒ " <> showType t
   where
     -- Don't show the DB-row restriction since it's so common and causes a lot of noise
     -- TODO: find a better way of showing this
