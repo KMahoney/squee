@@ -2,3 +2,4 @@ resolver: lts-16.18
 
 packages:
 - .
+- lib/ranged-parsec

@@ -44,3 +44,4 @@ executables:
       - prettyprinter-ansi-terminal
       - aeson-pretty
       - haskeline
+      - ranged-parsec
