@@ -1,8 +1,8 @@
-{-# LANGUAGE NamedFieldPuns, ScopedTypeVariables #-}
 module RangedParsec.Combinators
   ( skipSpace
   , takeWhile
   , takeWhile1
+  , excluding
   , excludingSet
   , sepBy
   , sepBy1
@@ -70,6 +70,16 @@ takeWhile1 p = Parsec (loop T.empty)
             Consumed (Ok (T.reverse acc) S.empty s)
 
 
+excluding :: Parsec a -> Parsec ()
+excluding p =
+  Parsec $ \s ->
+  case runParsec p s of
+    Consumed (Ok _ _ _) -> Empty (Error S.empty s)
+    Consumed (Error _ _) -> Empty (Ok () S.empty s)
+    Empty (Ok _ _ _) -> Empty (Error S.empty s)
+    Empty (Error _ _) -> Empty (Ok () S.empty s)
+
+
 excludingSet :: Parsec Text -> S.Set Text -> Parsec Text
 excludingSet p set =
   Parsec $ \s ->
@@ -112,7 +122,8 @@ try :: Parsec a -> Parsec a
 try (Parsec p) =
   Parsec $ \s ->
   case p s of
-    Consumed x -> Empty x
+    Consumed (Error ex _) -> Empty (Error ex s)
+    Consumed x -> Consumed x
     x -> x
 
 

@@ -62,5 +62,5 @@ instance Show a => Show (Located a) where
 
 
 firstSourcePos :: SourceSpan -> SourcePos
-firstSourcePos (Sourced { sourceFilename, sourceContent, discardSource = (pos, _) })
-  = Sourced { sourceFilename, sourceContent, discardSource = pos  }
+firstSourcePos (Sourced { sourceFilename, sourceContent, discardSource = (pos, _) }) =
+  Sourced { sourceFilename, sourceContent, discardSource = pos  }
