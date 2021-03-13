@@ -153,7 +153,13 @@ filteredExportedExample connection a = do
 
 ## Installation
 
-Install [Stack](https://docs.haskellstack.org/en/stable/README/#how-to-install), clone the repo, and then `stack install`.
+Requirements:
+
+- [Stack](https://docs.haskellstack.org/en/stable/README/#how-to-install)
+- PostgreSQL development libraries (e.g. on Debian/Ubuntu: `apt install libpq-dev`)
+- ncurses development libraries (e.g. on Debian/Ubuntu: `apt install libtinfo-dev`)
+
+Clone the repo, and then `stack install`.
 
 ## Notes and Limitations
 
